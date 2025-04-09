@@ -30,6 +30,13 @@ public inherited sharing class UnitOfWork implements DmlCommitable {
         void commitWork();
     }
 
+    // Implementation
+
+    private DmlExecutor insertUow = new InsertUow();
+    private DmlExecutor updateUow = new UpdateUow();
+    private DmlExecutor deleteUow = new DeleteUow();
+    private DmlExecutor platformEventUow = new PlatformEventUow();
+
     public UnitOfWork registerNew(SObject record) {
         if (String.isNotBlank(record.Id)) {
             throw new DmlException('Only new records can be registered as new');
@@ -98,22 +105,54 @@ public inherited sharing class UnitOfWork implements DmlCommitable {
     }
 
     public abstract class DmlExecutor {
+        private DmlSharing sharingExecutor = new InheritedSharing();
 
+        public abstract void execute();
     }
 
     public inherited sharing class InsertUow extends DmlExecutor {
-
+        public override void execute() {
+            // for (String sObjectTypeName : recordsByType.keySet()) {
+            //     recordsByType.get(sObjectTypeName).resolve();
+            //     Database.insert(recordsByType.get(sObjectTypeName).getRecords(), dmlOptions, AccessLevel.USER_MODE);
+            // }
+        }
     }
 
     public inherited sharing class UpdateUow extends DmlExecutor {
-
+        public override void execute() {
+        }
     }
 
     public inherited sharing class DeleteUow extends DmlExecutor {
-
+        public override void execute() {
+        }
     }
 
     public inherited sharing class PlatformEventUow extends DmlExecutor {
+        public override void execute() {
+        }
+    }
 
+    private interface DmlSharing {
+        void execute(DmlExecutor executor);
+    }
+
+    private inherited sharing class InheritedSharing implements DmlSharing {
+        public void execute(DmlExecutor executor) {
+            executor.execute();
+        }
+    }
+
+    private without sharing class WithoutSharing implements DmlSharing {
+        public void execute(DmlExecutor executor) {
+            executor.execute();
+        }
+    }
+
+    private with sharing class WithSharing implements DmlSharing {
+        public void execute(DmlExecutor executor) {
+            executor.execute();
+        }
     }
 }
