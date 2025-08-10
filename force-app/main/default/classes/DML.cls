@@ -4,38 +4,42 @@
  *
  * PMD False Positives:
 **/
-public inherited sharing class UnitOfWork implements DmlCommitable {
-    public interface DmlCommitable {
+public inherited sharing class DML implements Commitable {
+    public static Record Record(SObject record) {
+        return new DmlRecord(record);
+    }
+
+    public interface Commitable {
         // Settings
-        DmlCommitable systemMode();
-        DmlCommitable withSharing();
-        DmlCommitable withoutSharing();
-        DmlCommitable allowPartialSuccess();
+        Commitable systemMode();
+        Commitable withSharing();
+        Commitable withoutSharing();
+        Commitable allowPartialSuccess();
         // Insert
-        DmlCommitable registerNew(SObject record);
-        DmlCommitable registerNew(Iterable<SObject> records);
-        DmlCommitable registerNew(SObject record, SObjectField targetField, SObject relatedRecord);
+        Commitable toInsert(SObject record);
+        Commitable toInsert(List<SObject> records);
+        Commitable toInsert(DML.Record record);
+        Commitable toInsert(List<DML.Record> records);
         // Update
-        DmlCommitable registerDirty(SObject record);
-        DmlCommitable registerDirty(Iterable<SObject> records);
-        // Relationship
-        // DmlCommitable registerRelationship(SObject targetRecord, SObjectField targetField, SObject relatedRecord);
-        // DmlCommitable registerRelationship(SObject targetRecord, SObjectField targetField, SObjectField externalIdField, Object externalId);
+        Commitable toUpdate(SObject record);
+        Commitable toUpdate(Iterable<SObject> records);
         // Upsert
-        DmlCommitable registerUpsert(SObject record);
-        DmlCommitable registerUpsert(Iterable<SObject> records);
+        Commitable toUpsert(SObject record);
+        Commitable toUpsert(Iterable<SObject> records);
         // Delete
-        DmlCommitable registerDelete(SObject record);
-        DmlCommitable registerDelete(Iterable<SObject> recordssObjs);
+        Commitable toDelete(SObject record);
+        Commitable toDelete(Iterable<SObject> recordssObjs);
         // Platform Event
-        DmlCommitable registerPlatformEvent(SObject record);
-        DmlCommitable registerPlatformEvent(List<SObject> records);
+        Commitable toPublish(SObject record);
+        Commitable toPublish(List<SObject> records);
         // Debug
         void preview();
         // Save
         void commitWork();
-        // commitWorkAsSystem();
-        // commitWorkAsUser();
+    }
+    
+    public interface Record {
+        Record withRelationship(SObjectField targetField, SObject relatedRecord);
     }
 
     // Implementation
@@ -45,7 +49,7 @@ public inherited sharing class UnitOfWork implements DmlCommitable {
     private DmlExecutor deleteUow = new DeleteUow();
     private DmlExecutor platformEventUow = new PlatformEventUow();
 
-    public DmlCommitable systemMode() {
+    public Commitable systemMode() {
         this.insertUow.withoutSharing();
         this.updateUow.withoutSharing();
         this.deleteUow.withoutSharing();
@@ -53,7 +57,7 @@ public inherited sharing class UnitOfWork implements DmlCommitable {
         return this;
     }
 
-    public DmlCommitable withSharing() {
+    public Commitable withSharing() {
         this.insertUow.withSharing();
         this.updateUow.withSharing();
         this.deleteUow.withSharing();
@@ -61,7 +65,7 @@ public inherited sharing class UnitOfWork implements DmlCommitable {
         return this;
     }
 
-    public DmlCommitable withoutSharing() {
+    public Commitable withoutSharing() {
         this.insertUow.withoutSharing();
         this.updateUow.withoutSharing();
         this.deleteUow.withoutSharing();
@@ -69,7 +73,7 @@ public inherited sharing class UnitOfWork implements DmlCommitable {
         return this;
     }
 
-    public DmlCommitable allowPartialSuccess() {
+    public Commitable allowPartialSuccess() {
         this.insertUow.allowPartialSuccess();
         this.updateUow.allowPartialSuccess();
         this.deleteUow.allowPartialSuccess();
@@ -77,7 +81,7 @@ public inherited sharing class UnitOfWork implements DmlCommitable {
         return this;
     }
 
-    public DmlCommitable registerNew(SObject record) {
+    public Commitable toInsert(SObject record) {
         if (String.isNotBlank(record.Id)) {
             throw new DmlException('Only new records can be registered as new.');
         }
@@ -87,15 +91,28 @@ public inherited sharing class UnitOfWork implements DmlCommitable {
         return this;
     }
 
-    public DmlCommitable registerNew(Iterable<SObject> records) {
+    public Commitable toInsert(List<SObject> records) {
         for (SObject record : records) {
-            this.registerNew(record);
+            this.toInsert(record);
         }
         
         return this;
     }
 
-    public DmlCommitable registerDirty(SObject record) {
+    public Commitable toInsert(DML.Record record) {
+        // this.insertUow.register(new PlainSObjectUow(record.getRecord()));
+        return this;
+    }
+
+    public Commitable toInsert(List<DML.Record> records) {
+        for (DML.Record record : records) {
+            this.toInsert(record);
+        }
+        
+        return this;
+    }
+
+    public Commitable toUpdate(SObject record) {
         if (String.isBlank(record.Id)) {
             throw new DmlException('Only existing records can be registered as dirty.');
         }
@@ -105,41 +122,41 @@ public inherited sharing class UnitOfWork implements DmlCommitable {
         return this;
     }
 
-    public DmlCommitable registerDirty(Iterable<SObject> records) {
+    public Commitable toUpdate(Iterable<SObject> records) {
         for (SObject record : records) {
-            this.registerDirty(record);
+            this.toUpdate(record);
         }
         
         return this;
     }
 
-    public DmlCommitable registerNew(SObject targetRecord, SObjectField targetField, SObject relatedRecord) {
+    public Commitable toInsert(SObject targetRecord, SObjectField targetField, SObject relatedRecord) {
         this.insertUow.register(new RelationshipSObjectUow(targetRecord, targetField, relatedRecord));
         return this;
     }
 
-    public DmlCommitable registerRelationship(SObject targetRecord, SObjectField targetField, SObjectField externalIdField, Object externalId) {
+    public Commitable registerRelationship(SObject targetRecord, SObjectField targetField, SObjectField externalIdField, Object externalId) {
         // TODO
         return this;
     }
 
-    public DmlCommitable registerUpsert(SObject record) {
+    public Commitable toUpsert(SObject record) {
         if (String.isBlank(record.Id)) {
-            return this.registerNew(record);
+            return this.toInsert(record);
         }
 
-        return this.registerDirty(record);
+        return this.toUpdate(record);
     }
 
-    public DmlCommitable registerUpsert(Iterable<SObject> records) {
+    public Commitable toUpsert(Iterable<SObject> records) {
         for (SObject record : records) {
-            this.registerUpsert(record);
+            this.toUpsert(record);
         }
 
         return this;
     }
 
-    public DmlCommitable registerDelete(SObject record) {
+    public Commitable toDelete(SObject record) {
         if (String.isBlank(record.Id)) {
             throw new DmlException('Only existing records can be registered as deleted.');
         }
@@ -149,22 +166,22 @@ public inherited sharing class UnitOfWork implements DmlCommitable {
         return this;
     }
 
-    public DmlCommitable registerDelete(Iterable<SObject> records) {
+    public Commitable toDelete(Iterable<SObject> records) {
         for (SObject record : records) {
-            this.registerDelete(record);
+            this.toDelete(record);
         }
         
         return this;
     }
 
-    public DmlCommitable registerPlatformEvent(SObject record) {
+    public Commitable toPublish(SObject record) {
         this.platformEventUow.register(new PlainSObjectUow(record));
         return this;
     }
 
-    public DmlCommitable registerPlatformEvent(List<SObject> records) {
+    public Commitable toPublish(List<SObject> records) {
         for (sObject record : records) {
-            this.registerPlatformEvent(record);
+            this.toPublish(record);
         }
 
         return this;
@@ -386,6 +403,23 @@ public inherited sharing class UnitOfWork implements DmlCommitable {
         }
     }
 
+    private class DmlRecord implements Record {
+        private SObject record;
+
+        public DmlRecord(SObject record) {
+            this.record = record;
+        }
+
+        public DmlRecord withRelationship(SObjectField targetField, SObject relatedRecord) {    
+            // this.record.put(targetField, relatedRecord.Id);
+            return this;
+        }
+
+        public SObject getRecord() {
+            return this.record;
+        }
+    }
+
     private class ObjectTypeContainer {
         private List<SObjectUow> sObjectsWithRelationships;
 
@@ -414,37 +448,3 @@ public inherited sharing class UnitOfWork implements DmlCommitable {
         }
     }
 }
-
-    /*
-     UnitOfWork uow = new UnitOfWork();
-     uow.registerNew(new Account(Name='Test Account'));
-     uow.registerNew(new Account(Name='Test Account 2'));
-     uow.commitWork();
-
-     uow.registerRelationship(new Account(Name='Test Account'))
-        .withRelationshipField(...)
-        .withExternalIdField(...)
-        .withRelatedRecord(new Account(Name='Test Account 2'));
-
-    uow.registerRelationship(new Account(Name='Test Account'), Account.RelationshipField__c, new Account(Name='Test Account 2'));
-
-    uow.registerRelationship(
-        UOW.Relationship.of(new Account(Name='Test Account'))
-            .withRelationshipField(...)
-            .withExternalIdField(...)
-            .withRelatedRecord(new Account(Name='Test Account 2'))
-    )
-
-    */
-
-
-DML dml = new DML();
-
-dml.toInsert(new Account(Name='Test Account'));
-dml.toInsert(new Account(Name='Test Account 2'));
-dml.commitWork();
-
-dml.toInsert(new Account(Name='Test Account'))
-    .withRelationship(Account.RelationshipField__c, new Account(Name='Test Account 2'));
-
-dml.toInsert(new Account(Name='Test Account'), Account.RelationshipField__c, new Account(Name='Test Account 2'));

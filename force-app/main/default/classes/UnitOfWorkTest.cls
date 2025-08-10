@@ -584,42 +584,53 @@ private class UnitOfWorkTest {
 
 // OpportunityUow.regiserNew()
 
-        // UnitOfWork uow = new UnitOfWork();
+        // Setup
+        UnitOfWork uow = new UnitOfWork();
 
-        // for(Integer i = 0 ; i < 10 ; i++) {
-        //     Opportunity newOpportunity = new Opportunity(
-        //         Name = 'UoW Test Name ' + i,
-        //         StageName = 'Open',
-        //         CloseDate = System.today()
-        //     );
+        for(Integer i = 0 ; i < 10 ; i++) {
+            Opportunity newOpportunity = new Opportunity(
+                Name = 'UoW Test Name ' + i,
+                StageName = 'Open',
+                CloseDate = System.today()
+            );
 
-        //     uow.registerNew(newOpportunity);
+            uow.registerNew(newOpportunity);
 
-        //     for(Integer j = 0 ; j < i + 1 ; j++) {
-        //         Product2 newProduct = new Product2(
-        //             Name = newOpportunity.Name + ' : Product : ' + i
-        //         );
+            for(Integer j = 0 ; j < i + 1 ; j++) {
+                Product2 newProduct = new Product2(
+                    Name = newOpportunity.Name + ' : Product : ' + i
+                );
 
-        //         uow.registerNew(newProduct);
+                uow.registerNew(newProduct);
 
-        //         PricebookEntry newPricebookEntry = new PricebookEntry(
-        //             UnitPrice = 10,
-        //             IsActive = true,
-        //             UseStandardPrice = false,
-        //             Product2Id = newProduct.Id
-        //         );  
+                PricebookEntry newPricebookEntry = new PricebookEntry(
+                    UnitPrice = 10,
+                    IsActive = true,
+                    UseStandardPrice = false
+                );  
 
-        //         uow.registerNew(newPricebookEntry);
+                uow.registerNew(newPricebookEntry)
+                    .withRelationship(PricebookEntry.Product2Id, newProduct);
 
-        //         OpportunityLineItem newOpportunityLineItem = new OpportunityLineItem(
-        //             Quantity = 1,
-        //             TotalPrice = 10,
-        //             PricebookEntryId = newPricebookEntry.Id,
-        //             OpportunityId = newOpportunity.Id
-        //         );
+                OpportunityLineItem newOpportunityLineItem = new OpportunityLineItem(
+                    Quantity = 1,
+                    TotalPrice = 10
+                );
 
-        //         uow.registerNew(newOpportunityLineItem);
-        //     }
-        // }
+                uow.registerNew(newOpportunityLineItem)
+                    .withRelationship(OpportunityLineItem.OpportunityId, newOpportunity)
+                    .withRelationship(OpportunityLineItem.PricebookEntryId, newPricebookEntry);
+            }
+        }
 
-        // uow.preview();
+        uow.preview();
+
+
+DML dml = new DML();
+
+Opportunity newOpportunity = new Opportunity(
+                Name = 'UoW Test Name ' + i,
+                StageName = 'Open',
+                CloseDate = System.today()
+            );
+dml.
