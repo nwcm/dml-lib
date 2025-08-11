@@ -37,7 +37,7 @@ public inherited sharing class DML implements Commitable {
         // Debug
         void preview();
         // Field Level Security
-        // Commitable userMode();
+        Commitable userMode();
         Commitable systemMode();
         // Sharing Mode
         Commitable withSharing();
@@ -73,6 +73,14 @@ public inherited sharing class DML implements Commitable {
     private DmlExecutor updateUow = new UpdateUow();
     private DmlExecutor deleteUow = new DeleteUow();
     private DmlExecutor platformEventUow = new PlatformEventUow();
+
+    public Commitable userMode() {
+        this.insertUow.userMode();
+        this.updateUow.userMode();
+        this.deleteUow.userMode();
+        this.platformEventUow.userMode();
+        return this;
+    }
 
     public Commitable systemMode() {
         this.insertUow.systemMode();
@@ -228,11 +236,16 @@ public inherited sharing class DML implements Commitable {
     }
 
     public abstract class DmlExecutor {
+        private DmlSharing sharingExecutor = new InheritedSharing();
+
         protected Map<String, RecordsContainer> recordsProcessContainerByType = new Map<String, RecordsContainer>();
         protected AccessLevel accessMode = AccessLevel.USER_MODE;
         protected Boolean allOrNone = true;
 
-        private DmlSharing sharingExecutor = new InheritedSharing();
+        public DmlExecutor userMode() {
+            this.accessMode = AccessLevel.USER_MODE;
+            return this;
+        }
 
         public DmlExecutor systemMode() {
             this.accessMode = AccessLevel.SYSTEM_MODE;
