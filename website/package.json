@@ -1,5 +1,5 @@
 {
-  "name": "dml-lib-website",
+  "name": "dml-lib-vitepress-website",
   "version": "1.0.0",
   "main": "index.js",
   "license": "MIT",
