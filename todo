@@ -38,9 +38,9 @@ uow.withRetryPolicy(new RetryPolicy()
     - [ ] merge (surface MergeResult[])
     - [ ] publish event (__e queued and published during commit; include outcomes)
 - [ ] Return Database.Result or some other wrapper — return UowResult with per-op DmlOutcome, raw SaveResult[]/DeleteResult[]/MergeResult[], limits snapshot, events, retries.
-- [ ] Commit hooks
-    - [ ] Before commit hook — pure in-memory prep (e.g., finalize patches) before any DML.
-    - [ ] After commit hook — enqueue async work / notifications; fires only if commit succeeds.
+- [x] Commit hooks - `DML.Hook`
+    - [x] Before commit hook — pure in-memory prep (e.g., finalize patches) before any DML.
+    - [x] After commit hook — enqueue async work / notifications; fires only if commit succeeds.
 - [ ] 100% code coverage — tests for happy/error paths, CRUD/FLS modes, DmlOptions, chunking, lock-retry, preview, hooks, mocking registries, and relationship ordering.
 - [ ] Trigger bypass (optional) — opt-in static context flag toggled around commit; triggers must check it; default OFF.
 - [ ] Chunk Size — protect against DML row/CPU limits. uow.withChunkSize(200) (default 200) to mimic trigger batch sizes and reduce recursion; auto-downshift on retries if enabled.
@@ -73,3 +73,5 @@ class UowResult {
 - [ ] Dependency graph
     - [ ] Try to do as less DMLs as possible
     - [ ] Try to build dependency graph between objects (tree?)
+
+---

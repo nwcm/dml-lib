@@ -58,6 +58,8 @@ public inherited sharing class DML implements Commitable {
         Commitable allowPartialSuccess();
         Commitable options(Database.DmlOptions options);
         // Commitable executionOrder(List<SObjectType> executionOrder);
+        Commitable beforeHook(DML.Hook callback);
+        Commitable afterHook(DML.Hook callback);
         // Save
         void commitWork();
     }
@@ -80,6 +82,11 @@ public inherited sharing class DML implements Commitable {
         List<Record> get();
     }
 
+    public interface Hook {
+        void before();
+        void after();
+    }
+
     // Mocking
 
     @TestVisible
@@ -89,13 +96,14 @@ public inherited sharing class DML implements Commitable {
 
     // Implementation
 
-    private DmlExecutor insertCommand = new InsertUow();
-    private DmlExecutor updateCommand = new UpdateUow();
-    private DmlExecutor upsertCommand = new UpsertUow();
-    private DmlExecutor mergeCommand = new MergeUow();
-    private DmlExecutor deleteCommand = new DeleteUow();
-    private DmlExecutor undeleteCommand = new UndeleteUow();
-    private DmlExecutor publishCommand = new PlatformEventUow();
+    private DmlCommand insertCommand = new InsertUow();
+    private DmlCommand updateCommand = new UpdateUow();
+    private DmlCommand upsertCommand = new UpsertUow();
+    private DmlCommand mergeCommand = new MergeUow();
+    private DmlCommand deleteCommand = new DeleteUow();
+    private DmlCommand undeleteCommand = new UndeleteUow();
+    private DmlCommand publishCommand = new PlatformEventUow();
+    private DML.Hook hook = null;
 
     // Insert
 
@@ -332,10 +340,24 @@ public inherited sharing class DML implements Commitable {
         return this;
     }
 
+    // Hooks
+
+    public Commitable beforeHook(DML.Hook callback) {
+        this.hook = callback;
+        return this;
+    }
+
+    public Commitable afterHook(DML.Hook callback) {
+        this.hook = callback;
+        return this;
+    }
+
     public void commitWork() {
         Savepoint savePoint = Database.setSavepoint();
 
         try {
+            this.hook?.before();
+
             this.insertCommand.commitWork();
             this.updateCommand.commitWork();
             this.upsertCommand.commitWork();
@@ -343,6 +365,8 @@ public inherited sharing class DML implements Commitable {
             this.deleteCommand.commitWork();
             this.undeleteCommand.commitWork();
             this.publishCommand.commitWork();
+
+            this.hook?.after();
         } catch (Exception e) {
             Database.rollback(savePoint);
             throw e;
@@ -351,35 +375,34 @@ public inherited sharing class DML implements Commitable {
         }
     }
 
-    public abstract class DmlExecutor {
-        private DmlSharing sharingExecutor = new InheritedSharing();
-
+    public abstract class DmlCommand {
         protected Map<String, RecordsContainer> recordsProcessContainerByType = new Map<String, RecordsContainer>();
         protected AccessLevel accessMode = AccessLevel.USER_MODE;
+        protected DmlSharing sharingExecutor = new InheritedSharing();
         protected Boolean allOrNone = true;
 
-        public DmlExecutor userMode() {
+        public DmlCommand userMode() {
             this.accessMode = AccessLevel.USER_MODE;
             return this;
         }
 
-        public DmlExecutor systemMode() {
+        public DmlCommand systemMode() {
             this.accessMode = AccessLevel.SYSTEM_MODE;
             return this;
         }
 
-        public DmlExecutor allowPartialSuccess() {
-            this.allOrNone = false;
-            return this;
-        }
-
-        public DmlExecutor withSharing() {
+        public DmlCommand withSharing() {
             this.sharingExecutor = new WithSharing();
             return this;
         }
 
-        public DmlExecutor withoutSharing() {
+        public DmlCommand withoutSharing() {
             this.sharingExecutor = new WithoutSharing();
+            return this;
+        }
+
+        public DmlCommand allowPartialSuccess() {
+            this.allOrNone = false;
             return this;
         }
 
@@ -425,7 +448,7 @@ public inherited sharing class DML implements Commitable {
         }
     }
 
-    public inherited sharing class InsertUow extends DmlExecutor {
+    public inherited sharing class InsertUow extends DmlCommand {
         public override void execute() {
             for (String objectTypeName : this.recordsProcessContainerByType.keySet()) { //TODO Move loop to parent class
                 Database.insert(this.recordsProcessContainerByType.get(objectTypeName).getRecordsToProcess(), this.allOrNone, this.accessMode);
@@ -433,7 +456,7 @@ public inherited sharing class DML implements Commitable {
         }
     }
 
-    public inherited sharing class UpdateUow extends DmlExecutor {
+    public inherited sharing class UpdateUow extends DmlCommand {
         public override void execute() {
             for (String objectTypeName : this.recordsProcessContainerByType.keySet()) {
                 Database.update(this.recordsProcessContainerByType.get(objectTypeName).getRecordsToProcess(), this.allOrNone, this.accessMode);
@@ -441,7 +464,7 @@ public inherited sharing class DML implements Commitable {
         }
     }
 
-    public inherited sharing class UpsertUow extends DmlExecutor {
+    public inherited sharing class UpsertUow extends DmlCommand {
         public override void execute() {
             for (String objectTypeName : this.recordsProcessContainerByType.keySet()) {
                 Database.upsert(this.recordsProcessContainerByType.get(objectTypeName).getRecordsToProcess(), this.allOrNone, this.accessMode);
@@ -449,7 +472,7 @@ public inherited sharing class DML implements Commitable {
         }
     }
 
-    public inherited sharing class MergeUow extends DmlExecutor {
+    public inherited sharing class MergeUow extends DmlCommand {
         public override void execute() {
             for (String objectTypeName : this.recordsProcessContainerByType.keySet()) {
                 // Database.merge(this.recordsProcessContainerByType.get(objectTypeName).getRecordsToProcess(), this.allOrNone, this.accessMode);
@@ -457,7 +480,7 @@ public inherited sharing class DML implements Commitable {
         }
     }
 
-    public inherited sharing class DeleteUow extends DmlExecutor {
+    public inherited sharing class DeleteUow extends DmlCommand {
         public override void execute() {
             for (String objectTypeName : this.recordsProcessContainerByType.keySet()) {
                 Database.delete(this.recordsProcessContainerByType.get(objectTypeName).getRecordsToProcess(), this.allOrNone, this.accessMode);
@@ -465,7 +488,7 @@ public inherited sharing class DML implements Commitable {
         }
     }
 
-    public inherited sharing class UndeleteUow extends DmlExecutor {
+    public inherited sharing class UndeleteUow extends DmlCommand {
         public override void execute() {
             for (String objectTypeName : this.recordsProcessContainerByType.keySet()) {
                 Database.undelete(this.recordsProcessContainerByType.get(objectTypeName).getRecordsToProcess(), this.allOrNone, this.accessMode);
@@ -473,7 +496,7 @@ public inherited sharing class DML implements Commitable {
         }
     }
 
-    public inherited sharing class PlatformEventUow extends DmlExecutor {
+    public inherited sharing class PlatformEventUow extends DmlCommand {
         public override void execute() {
             List<SObject> events = new List<SObject>();
 
@@ -486,23 +509,23 @@ public inherited sharing class DML implements Commitable {
     }
 
     private interface DmlSharing {
-        void execute(DmlExecutor executor);
+        void execute(DmlCommand executor);
     }
 
     private inherited sharing class InheritedSharing implements DmlSharing {
-        public void execute(DmlExecutor executor) {
+        public void execute(DmlCommand executor) {
             executor.execute();
         }
     }
 
     private without sharing class WithoutSharing implements DmlSharing {
-        public void execute(DmlExecutor executor) {
+        public void execute(DmlCommand executor) {
             executor.execute();
         }
     }
 
     private with sharing class WithSharing implements DmlSharing {
-        public void execute(DmlExecutor executor) {
+        public void execute(DmlCommand executor) {
             executor.execute();
         }
     }
