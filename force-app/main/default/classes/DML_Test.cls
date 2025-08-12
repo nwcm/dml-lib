@@ -89,11 +89,11 @@ private class DML_Test {
         Test.stopTest();
 
         // Verify
-        // Assert.areEqual(2, [SELECT COUNT() FROM Contact], 'Contact should be related to Account.');
-        // Assert.areEqual(1, [SELECT COUNT() FROM Account], 'Account should be related to Contact.');
+        Assert.areEqual(2, [SELECT COUNT() FROM Contact], 'Contact should be related to Account.');
+        Assert.areEqual(1, [SELECT COUNT() FROM Account], 'Account should be related to Contact.');
 
-        // Assert.areEqual(newAccount.Id, newContact.AccountId, 'Contact should be related to Account.');
-        // Assert.areEqual(newAccount.Id, newContact2.AccountId, 'Contact 2 should be related to Account.');
+        Assert.areEqual(newAccount.Id, newContact.AccountId, 'Contact should be related to Account.');
+        Assert.areEqual(newAccount.Id, newContact2.AccountId, 'Contact 2 should be related to Account.');
     }
 
     @IsTest
@@ -194,6 +194,31 @@ private class DML_Test {
     }
 
     @IsTest
+    static void toUpdateWithRelationshipSingleRecord() {
+        // Setup
+        Account newAccount = new Account(Name = 'Test Account');
+
+        Contact newContact = new Contact(FirstName = 'Test', LastName = 'Contact');
+        insert newContact;
+
+        // Test
+        Test.startTest();
+            new DML()
+                .toInsert(newAccount)
+                .toUpdate(DML.Record(newContact).withRelationship(Contact.AccountId, newAccount))
+                .commitWork();
+        Test.stopTest();
+
+        // Verify
+        Assert.areEqual(1, [SELECT COUNT() FROM Account], 'Account should be updated.');
+        Assert.areEqual(1, [SELECT COUNT() FROM Contact], 'Contact should be related to Account.');
+
+        List<Contact> contacts = [SELECT Id, AccountId FROM Contact WHERE Id = :newContact.Id];
+
+        Assert.areEqual(newAccount.Id, contacts[0].AccountId, 'Contact should be related to Account.');
+    }
+
+    @IsTest
     static void toUpdateMultipleRecords() {
         // Setup
         Account account1 = new Account(Name = 'Test Account 1');
@@ -217,6 +242,36 @@ private class DML_Test {
 
         Assert.areEqual('Updated Test Account 1', account1.Name, 'Account 1 should be updated.');
         Assert.areEqual('Updated Test Account 2', account2.Name, 'Account 2 should be updated.');
+    }
+
+    @IsTest
+    static void toUpdateWithRelationshipMultipleRecords() {
+        // Setup
+        Account newAccount = new Account(Name = 'Test Account');
+
+        Contact newContact = new Contact(FirstName = 'Test', LastName = 'Contact');
+        Contact newContact2 = new Contact(FirstName = 'Test 2', LastName = 'Contact 2');
+
+        List<Contact> contactsToCreate = new List<Contact>{ newContact, newContact2 };
+
+        insert contactsToCreate;
+
+        // Test
+        Test.startTest();
+            new DML()
+                .toInsert(newAccount)
+                .toUpdate(DML.Records(contactsToCreate).withRelationship(Contact.AccountId, newAccount))
+                .commitWork();
+        Test.stopTest();
+
+        // Verify
+        Assert.areEqual(2, [SELECT COUNT() FROM Contact], 'Contact should be related to Account.');
+        Assert.areEqual(1, [SELECT COUNT() FROM Account], 'Account should be related to Contact.');
+
+        List<Contact> contacts = [SELECT Id, AccountId FROM Contact WHERE Id IN :contactsToCreate];
+
+        Assert.areEqual(newAccount.Id, contacts[0].AccountId, 'Contact should be related to Account.');
+        Assert.areEqual(newAccount.Id, contacts[1].AccountId, 'Contact 2 should be related to Account.');
     }
 
     @IsTest

@@ -10,34 +10,16 @@ For more details, please refer to the [documentation](https://dml.beyondthecloud
 new DML()
     .toInsert(new Account(Name = 'My Account'))
     .commitWork();
-
-// or
-
-DML dml = new DML();
-
-dml.toInsert(new Account(Name = 'My Account'));
-
-dml.commitWork();
 ```
 
 **Update DML** 
 
 ```java
-Account account = [SELECT Id, Name FROM Account LIMIT 1];
-
-account.Name = 'New Account Name';
+Account account = [SELECT Id FROM Account LIMIT 1];
 
 new DML()
-    .toUpdate(account)
+    .toUpdate(new Account(Id = account.Id, Name = 'New Name'))
     .commitWork();
-
-//
-
-DML dml = new DML();
-
-dml.toUpdate(account);
-
-dml.commitWork();
 ```
 
 

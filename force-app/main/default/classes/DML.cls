@@ -9,7 +9,7 @@ public inherited sharing class DML implements Commitable {
         return new DmlRecord(record);
     }
 
-    public static Records records(Iterable<SObject> records) { // to process multiple records at once
+    public static Records Records(Iterable<SObject> records) { // to process multiple records at once
         return new DmlRecords(records);
     }
 
@@ -17,34 +17,47 @@ public inherited sharing class DML implements Commitable {
         // Insert
         Commitable toInsert(SObject record);
         Commitable toInsert(DML.Record record);
-        Commitable toInsert(List<SObject> records);
+        Commitable toInsert(Iterable<SObject> records);
         Commitable toInsert(DML.Records records);
         // Update
         Commitable toUpdate(SObject record);
         Commitable toUpdate(DML.Record record);
-        Commitable toUpdate(List<SObject> records);
+        Commitable toUpdate(Iterable<SObject> records);
+        Commitable toUpdate(DML.Records records);
         // Upsert
         Commitable toUpsert(SObject record);
         Commitable toUpsert(DML.Record record);
-        Commitable toUpsert(List<SObject> records);
-        // Commitable toUpsert(SObject record, Schema.SObjectField externalIdField);
+        Commitable toUpsert(Iterable<SObject> records);
+        Commitable toUpsert(DML.Records records);
+        // Commitable toUpsert(SObject record, SObjectField externalIdField);
         // Delete
         Commitable toDelete(SObject record);
-        Commitable toDelete(List<SObject> recordssObjs);
+        Commitable toDelete(Iterable<SObject> records);
+        // Undelete
+        Commitable toUndelete(Id recordId);
+        Commitable toUndelete(SObject record);
+        Commitable toUndelete(Iterable<Id> recordIds);
+        Commitable toUndelete(List<SObject> records);
+        // Merge
+        Commitable toMerge(SObject record, SObject recordToMerge);
+        Commitable toMerge(Iterable<SObject> records, SObject recordToMerge);
         // Platform Event
         Commitable toPublish(SObject record);
-        Commitable toPublish(List<SObject> records);
+        Commitable toPublish(Iterable<SObject> records);
         // Debug
         void preview();
         // Field Level Security
         Commitable userMode();
         Commitable systemMode();
+        Commitable stripInaccessible();
+        Commitable stripInaccessible(AccessType accessType);
         // Sharing Mode
         Commitable withSharing();
         Commitable withoutSharing();
-        // Partial Success
+        // Other configs
         Commitable allowPartialSuccess();
-        // Commitable dmlOptions(Database.DmlOptions options);
+        Commitable options(Database.DmlOptions options);
+        // Commitable executionOrder(List<SObjectType> executionOrder);
         // Save
         void commitWork();
     }
@@ -64,66 +77,30 @@ public inherited sharing class DML implements Commitable {
         Records withRelationship(SObjectField targetField, SObjectField externalIdField, Object externalId);
         
         // for internal use only
-        List<EnhancedRecord> get();
+        List<Record> get();
+    }
+
+    // Mocking
+
+    @TestVisible
+    private static void mock(String dmlMockId) {
+        // TODO
     }
 
     // Implementation
 
-    private DmlExecutor insertUow = new InsertUow();
-    private DmlExecutor updateUow = new UpdateUow();
-    private DmlExecutor deleteUow = new DeleteUow();
-    private DmlExecutor platformEventUow = new PlatformEventUow();
+    private DmlExecutor insertCommand = new InsertUow();
+    private DmlExecutor updateCommand = new UpdateUow();
+    private DmlExecutor upsertCommand = new UpsertUow();
+    private DmlExecutor mergeCommand = new MergeUow();
+    private DmlExecutor deleteCommand = new DeleteUow();
+    private DmlExecutor undeleteCommand = new UndeleteUow();
+    private DmlExecutor publishCommand = new PlatformEventUow();
 
-    public Commitable userMode() {
-        this.insertUow.userMode();
-        this.updateUow.userMode();
-        this.deleteUow.userMode();
-        this.platformEventUow.userMode();
-        return this;
-    }
-
-    public Commitable systemMode() {
-        this.insertUow.systemMode();
-        this.updateUow.systemMode();
-        this.deleteUow.systemMode();
-        this.platformEventUow.systemMode();
-        return this;
-    }
-
-    public Commitable withSharing() {
-        this.insertUow.withSharing();
-        this.updateUow.withSharing();
-        this.deleteUow.withSharing();
-        this.platformEventUow.withSharing();
-        return this;
-    }
-
-    public Commitable withoutSharing() {
-        this.insertUow.withoutSharing();
-        this.updateUow.withoutSharing();
-        this.deleteUow.withoutSharing();
-        this.platformEventUow.withoutSharing();
-        return this;
-    }
-
-    public Commitable allowPartialSuccess() {
-        this.insertUow.allowPartialSuccess();
-        this.updateUow.allowPartialSuccess();
-        this.deleteUow.allowPartialSuccess();
-        this.platformEventUow.allowPartialSuccess();
-        return this;
-    }
+    // Insert
 
     public Commitable toInsert(SObject record) {
         return this.toInsert(DML.Record(record));
-    }
-
-    public Commitable toInsert(List<SObject> records) {
-        for (SObject record : records) {
-            this.toInsert(record);
-        }
-        
-        return this;
     }
 
     public Commitable toInsert(DML.Record record) {
@@ -131,27 +108,27 @@ public inherited sharing class DML implements Commitable {
             throw new DmlException('Only new records can be registered as new.');
         }
 
-        this.insertUow.register(record);
+        this.insertCommand.register(record);
+
         return this;
     }
 
+    public Commitable toInsert(Iterable<SObject> records) {
+        return this.toInsert(DML.Records(records));
+    }
+    
     public Commitable toInsert(DML.Records records) {
-        // for (DML.Record record : records.get()) {
-        //     this.toInsert(record);
-        // }
+        for (DML.Record record : records.get()) {
+            this.toInsert(record);
+        }
+
         return this;
     }
 
+    // Update
+    
     public Commitable toUpdate(SObject record) {
         return this.toUpdate(DML.Record(record));
-    }
-
-    public Commitable toUpdate(Iterable<SObject> records) {
-        for (SObject record : records) {
-            this.toUpdate(record);
-        }
-        
-        return this;
     }
 
     public Commitable toUpdate(DML.Record record) {
@@ -159,36 +136,54 @@ public inherited sharing class DML implements Commitable {
             throw new DmlException('Only existing records can be updated.');
         }
 
-        this.updateUow.register(record);
+        this.updateCommand.register(record);
+
         return this;
     }
+
+    public Commitable toUpdate(Iterable<SObject> records) {
+        return this.toUpdate(DML.Records(records));
+    }
+
+    public Commitable toUpdate(DML.Records records) {
+        for (DML.Record record : records.get()) {
+            this.toUpdate(record);
+        }
+        
+        return this;
+    }
+
+    // Upsert
 
     public Commitable toUpsert(SObject record) {
         return this.toUpsert(DML.Record(record));
     }
 
-    public Commitable toUpsert(Iterable<SObject> records) {
-        for (SObject record : records) {
-            this.toUpsert(record);
-        }
-
+    public Commitable toUpsert(DML.Record record) {
+        this.upsertCommand.register(record);
         return this;
     }
 
-    public Commitable toUpsert(DML.Record record) {
-        if (record.get().isRecordAlreadyExists()) {
-            return this.toUpdate(record);
+    public Commitable toUpsert(Iterable<SObject> records) {
+        return this.toUpsert(DML.Records(records));
+    }
+
+    public Commitable toUpsert(DML.Records records) {
+        for (DML.Record record : records.get()) {
+            this.toUpsert(record);
         }
         
-        return this.toInsert(record);
+        return this;
     }
+
+    // Delete
 
     public Commitable toDelete(SObject record) {
         if (String.isBlank(record.Id)) {
             throw new DmlException('Only existing records can be registered as deleted.');
         }
 
-        this.deleteUow.register(DML.Record(record));
+        this.deleteCommand.register(DML.Record(record));
 
         return this;
     }
@@ -201,37 +196,158 @@ public inherited sharing class DML implements Commitable {
         return this;
     }
 
-    public Commitable toPublish(SObject record) {
-        this.platformEventUow.register(DML.Record(record));
+    // Undelete
+
+    public Commitable toUndelete(Id recordId) {
+        // TODO
         return this;
     }
 
-    public Commitable toPublish(List<SObject> records) {
-        for (sObject record : records) {
+    public Commitable toUndelete(SObject record) {
+        this.undeleteCommand.register(DML.Record(record));
+        return this;
+    }
+
+    public Commitable toUndelete(Iterable<Id> recordIds) {
+        // TODO
+        return this;
+    }
+
+    public Commitable toUndelete(List<SObject> records) {
+        // TODO
+        return this;
+    }
+
+    // Merge
+
+    public Commitable toMerge(SObject record, SObject recordToMerge) {
+        // TODO
+        return this;
+    }
+
+    public Commitable toMerge(Iterable<SObject> records, SObject recordToMerge) {
+        // TODO
+        return this;
+    }
+
+    // Platform Event
+
+    public Commitable toPublish(SObject record) {
+        this.publishCommand.register(DML.Record(record));
+        return this;
+    }
+
+    public Commitable toPublish(Iterable<SObject> records) {
+        for (SObject record : records) {
             this.toPublish(record);
         }
 
         return this;
     }
 
+    // Debug
+
     public void preview() {
-        this.insertUow.preview();
-        this.updateUow.preview();
-        this.deleteUow.preview();
-        this.platformEventUow.preview();
+        this.insertCommand.preview();
+        this.updateCommand.preview();
+        this.upsertCommand.preview();
+        this.mergeCommand.preview();
+        this.deleteCommand.preview();
+        this.undeleteCommand.preview(); 
+        this.publishCommand.preview();
+    }
+
+    // Field Level Security
+
+    public Commitable userMode() {
+        this.insertCommand.userMode();
+        this.updateCommand.userMode();
+        this.upsertCommand.userMode();
+        this.mergeCommand.userMode();
+        this.deleteCommand.userMode();
+        this.undeleteCommand.userMode();
+        this.publishCommand.userMode();
+        return this;
+    }
+
+    public Commitable systemMode() {
+        this.insertCommand.systemMode();
+        this.updateCommand.systemMode();
+        this.upsertCommand.systemMode();
+        this.mergeCommand.systemMode();
+        this.deleteCommand.systemMode();
+        this.undeleteCommand.systemMode();
+        this.publishCommand.systemMode();
+        return this;
+    }
+
+    public Commitable stripInaccessible() {
+        return this.stripInaccessible(AccessType.READABLE);
+    }
+
+    public Commitable stripInaccessible(AccessType accessType) {
+        // TODO
+        return this;
+    }
+
+    // Sharing Mode
+
+    public Commitable withSharing() {
+        this.insertCommand.withSharing();
+        this.updateCommand.withSharing();
+        this.upsertCommand.withSharing();
+        this.mergeCommand.withSharing();
+        this.deleteCommand.withSharing();
+        this.undeleteCommand.withSharing();
+        this.publishCommand.withSharing();
+        return this;
+    }
+
+    public Commitable withoutSharing() {
+        this.insertCommand.withoutSharing();
+        this.updateCommand.withoutSharing();
+        this.upsertCommand.withoutSharing();
+        this.mergeCommand.withoutSharing();
+        this.deleteCommand.withoutSharing();
+        this.undeleteCommand.withoutSharing();
+        this.publishCommand.withoutSharing();
+        return this;
+    }
+
+    // Other configs
+
+    public Commitable allowPartialSuccess() {
+        this.insertCommand.allowPartialSuccess();
+        this.updateCommand.allowPartialSuccess();
+        this.upsertCommand.allowPartialSuccess();
+        this.mergeCommand.allowPartialSuccess();
+        this.deleteCommand.allowPartialSuccess();
+        this.undeleteCommand.allowPartialSuccess();
+        this.publishCommand.allowPartialSuccess();
+        return this;
+    }
+
+    public Commitable options(Database.DmlOptions options) {
+        // TODO
+        return this;
     }
 
     public void commitWork() {
         Savepoint savePoint = Database.setSavepoint();
 
         try {
-            this.insertUow.commitWork();
-            this.updateUow.commitWork();
-            this.deleteUow.commitWork();
-            this.platformEventUow.commitWork();
+            this.insertCommand.commitWork();
+            this.updateCommand.commitWork();
+            this.upsertCommand.commitWork();
+            this.mergeCommand.commitWork();
+            this.deleteCommand.commitWork();
+            this.undeleteCommand.commitWork();
+            this.publishCommand.commitWork();
         } catch (Exception e) {
             Database.rollback(savePoint);
             throw e;
+        } finally {
+            Database.releaseSavepoint(savePoint);
         }
     }
 
@@ -290,6 +406,25 @@ public inherited sharing class DML implements Commitable {
         public abstract void execute();
     }
 
+    private class RecordsContainer {
+        private List<EnhancedRecord> enhancedRecords = new List<EnhancedRecord>();
+
+        public void addNewRecordToProcess(EnhancedRecord enhancedRecord) {
+            this.enhancedRecords.add(enhancedRecord);
+        }
+
+        public List<SObject> getRecordsToProcess() { 
+            List<SObject> recordsToProcess = new List<SObject>();
+
+            for (EnhancedRecord enhancedRecord : this.enhancedRecords) {
+                enhancedRecord.resolveRecordRelationships();
+                recordsToProcess.add(enhancedRecord.getRecord());
+            }
+
+            return recordsToProcess;
+        }
+    }
+
     public inherited sharing class InsertUow extends DmlExecutor {
         public override void execute() {
             for (String objectTypeName : this.recordsProcessContainerByType.keySet()) { //TODO Move loop to parent class
@@ -306,10 +441,34 @@ public inherited sharing class DML implements Commitable {
         }
     }
 
+    public inherited sharing class UpsertUow extends DmlExecutor {
+        public override void execute() {
+            for (String objectTypeName : this.recordsProcessContainerByType.keySet()) {
+                Database.upsert(this.recordsProcessContainerByType.get(objectTypeName).getRecordsToProcess(), this.allOrNone, this.accessMode);
+            }
+        }
+    }
+
+    public inherited sharing class MergeUow extends DmlExecutor {
+        public override void execute() {
+            for (String objectTypeName : this.recordsProcessContainerByType.keySet()) {
+                // Database.merge(this.recordsProcessContainerByType.get(objectTypeName).getRecordsToProcess(), this.allOrNone, this.accessMode);
+            }
+        }
+    }
+
     public inherited sharing class DeleteUow extends DmlExecutor {
         public override void execute() {
             for (String objectTypeName : this.recordsProcessContainerByType.keySet()) {
                 Database.delete(this.recordsProcessContainerByType.get(objectTypeName).getRecordsToProcess(), this.allOrNone, this.accessMode);
+            }
+        }
+    }
+
+    public inherited sharing class UndeleteUow extends DmlExecutor {
+        public override void execute() {
+            for (String objectTypeName : this.recordsProcessContainerByType.keySet()) {
+                Database.undelete(this.recordsProcessContainerByType.get(objectTypeName).getRecordsToProcess(), this.allOrNone, this.accessMode);
             }
         }
     }
@@ -395,14 +554,8 @@ public inherited sharing class DML implements Commitable {
             return this;
         }
 
-        public List<EnhancedRecord> get() {
-            List<EnhancedRecord> enhancedRecords = new List<EnhancedRecord>();
-
-            for (DML.Record dmlRecord : this.enhancedRecords) {
-                enhancedRecords.add(dmlRecord.get());
-            }
-
-            return enhancedRecords;
+        public List<DML.Record> get() {
+            return this.enhancedRecords;
         }
     }
 
@@ -521,25 +674,6 @@ public inherited sharing class DML implements Commitable {
             if (!relatedHasExternalIdField) {
                 throw new DmlException('Invalid argument: externalIdField. Field supplied is not a known field on the target sObject.');
             }
-        }
-    }
-
-    private class RecordsContainer {
-        private List<EnhancedRecord> enhancedRecords = new List<EnhancedRecord>();
-
-        public void addNewRecordToProcess(EnhancedRecord enhancedRecord) {
-            this.enhancedRecords.add(enhancedRecord);
-        }
-
-        public List<SObject> getRecordsToProcess() { 
-            List<SObject> recordsToProcess = new List<SObject>();
-
-            for (EnhancedRecord enhancedRecord : this.enhancedRecords) {
-                enhancedRecord.resolveRecordRelationships();
-                recordsToProcess.add(enhancedRecord.getRecord());
-            }
-
-            return recordsToProcess;
         }
     }
 }
