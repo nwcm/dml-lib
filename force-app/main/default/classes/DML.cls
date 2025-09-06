@@ -336,7 +336,13 @@ public inherited sharing class DML implements Commitable {
     }
 
     public Commitable options(Database.DmlOptions options) {
-        // TODO
+        this.insertCommand.options(options);
+        this.updateCommand.options(options);
+        this.upsertCommand.options(options);
+        this.mergeCommand.options(options);
+        this.deleteCommand.options(options);
+        this.undeleteCommand.options(options);
+        this.publishCommand.options(options);
         return this;
     }
 
@@ -380,6 +386,11 @@ public inherited sharing class DML implements Commitable {
         protected AccessLevel accessMode = AccessLevel.USER_MODE;
         protected DmlSharing sharingExecutor = new InheritedSharing();
         protected Boolean allOrNone = true;
+        protected Database.DmlOptions options = new Database.DMLOptions();
+
+        public DmlCommand() {
+            this.options.optAllOrNone = this.allOrNone;
+        }
 
         public DmlCommand userMode() {
             this.accessMode = AccessLevel.USER_MODE;
@@ -403,7 +414,13 @@ public inherited sharing class DML implements Commitable {
 
         public DmlCommand allowPartialSuccess() {
             this.allOrNone = false;
+            this.options.optAllOrNone = false;
             return this;
+        }
+
+        public void options(Database.DmlOptions options) {
+            this.options = options;
+            this.options.optAllOrNone = this.options.optAllOrNone ?? this.allOrNone ?? true;
         }
 
         public void register(Record record) {
@@ -451,7 +468,7 @@ public inherited sharing class DML implements Commitable {
     public inherited sharing class InsertUow extends DmlCommand {
         public override void execute() {
             for (String objectTypeName : this.recordsProcessContainerByType.keySet()) { //TODO Move loop to parent class
-                Database.insert(this.recordsProcessContainerByType.get(objectTypeName).getRecordsToProcess(), this.allOrNone, this.accessMode);
+                Database.insert(this.recordsProcessContainerByType.get(objectTypeName).getRecordsToProcess(), this.options, this.accessMode);
             }
         }
     }
@@ -459,7 +476,7 @@ public inherited sharing class DML implements Commitable {
     public inherited sharing class UpdateUow extends DmlCommand {
         public override void execute() {
             for (String objectTypeName : this.recordsProcessContainerByType.keySet()) {
-                Database.update(this.recordsProcessContainerByType.get(objectTypeName).getRecordsToProcess(), this.allOrNone, this.accessMode);
+                Database.update(this.recordsProcessContainerByType.get(objectTypeName).getRecordsToProcess(), this.options, this.accessMode);
             }
         }
     }
@@ -475,7 +492,7 @@ public inherited sharing class DML implements Commitable {
     public inherited sharing class MergeUow extends DmlCommand {
         public override void execute() {
             for (String objectTypeName : this.recordsProcessContainerByType.keySet()) {
-                // Database.merge(this.recordsProcessContainerByType.get(objectTypeName).getRecordsToProcess(), this.allOrNone, this.accessMode);
+                // Database.merge(this.recordsProcessContainerByType.get(objectTypeName).getRecordsToProcess(), this.options, this.accessMode);
             }
         }
     }

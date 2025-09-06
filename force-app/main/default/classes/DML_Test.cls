@@ -170,6 +170,26 @@ private class DML_Test {
         Assert.areEqual('Only new records can be registered as new.', expectedException.getMessage(), 'Expected exception message should be thrown.');
     }
 
+    @IsTest
+    static void toInsertWithPartialSuccess() {
+        // Setup
+        List<Account> accounts = new List<Account>{
+            new Account(Name = 'Test Account 1'),
+            new Account() // Name is required
+        };
+
+        // Test
+        Test.startTest();
+            new DML()
+                .toInsert(accounts)
+                .allowPartialSuccess()
+                .commitWork();
+        Test.stopTest();
+
+        // Verify
+        Assert.areEqual(1, [SELECT COUNT() FROM Account], 'Only one account should be inserted, because one has missing required field.');
+    }
+
     // UPDATE
 
     @IsTest
@@ -359,6 +379,31 @@ private class DML_Test {
         Assert.areEqual('Only existing records can be updated.', expectedException.getMessage(), 'Expected exception message should be thrown.');
     }
 
+    @IsTest
+    static void toUpdateWithPartialSuccess() {
+        // Setup
+        List<Account> accounts = new List<Account>{
+            new Account(Name = 'Test Account 1'),
+            new Account(Name = 'Test Account 2')
+        };
+
+        insert accounts;
+
+        // Test
+        Test.startTest();
+            accounts[0].Name = null;
+            accounts[1].Name = 'Test Account 1 New Name';
+
+            new DML()
+                .toUpdate(accounts)
+                .allowPartialSuccess()
+                .commitWork();
+        Test.stopTest();
+
+        // Verify
+        Assert.areEqual(2, [SELECT COUNT() FROM Account WHERE Name IN ('Test Account 1', 'Test Account 1 New Name')], 'Accounts should be updated.');
+    }
+
     // UPSERT
 
     @IsTest
@@ -513,6 +558,33 @@ private class DML_Test {
         Assert.isNotNull(newAccounts[2].Id, 'New Account 3 should be inserted and have an Id.');
     }
 
+    @IsTest
+    static void toUpsertWithPartialSuccess() {
+        // Setup
+        List<Account> accounts = new List<Account>{
+            new Account(Name = 'Test Account 1'),
+            new Account(Name = 'Test Account 2')
+        };
+
+        insert accounts;
+
+        accounts[0].Name = null;
+        accounts[1].Name = 'Test Account 1 New Name';
+
+        accounts.add(new Account(Name = 'Test Account 3')); // New account
+        
+        // Test
+        Test.startTest();
+            new DML()
+                .toUpsert(accounts)
+                .allowPartialSuccess()
+                .commitWork();
+        Test.stopTest();
+
+        // Verify
+        Assert.areEqual(3, [SELECT COUNT() FROM Account WHERE Name IN ('Test Account 1', 'Test Account 1 New Name', 'Test Account 3')], 'Accounts should be updated.');
+    }
+
     // DELETE
 
     @IsTest
@@ -595,6 +667,28 @@ private class DML_Test {
         // Verify
         Assert.isNotNull(expectedException, 'Expected exception to be thrown.');
         Assert.areEqual('Only existing records can be registered as deleted.', expectedException.getMessage(), 'Expected exception message should be thrown.');
+    }
+
+    @IsTest
+    static void toDeleteWithPartialSuccess() {
+        // Setup
+        List<Account> accounts = new List<Account>{
+            new Account(Name = 'Test Account 1'),
+            new Account(Name = 'Test Account 2')
+        };
+
+        insert accounts;
+
+        // Test
+        Test.startTest();
+            new DML()
+                .toDelete(accounts)
+                .allowPartialSuccess()
+                .commitWork();
+        Test.stopTest();
+
+        // Verify
+        Assert.areEqual(0, [SELECT COUNT() FROM Account], 'Accounts should be deleted.');
     }
 
     // PLATFORM EVENT

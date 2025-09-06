@@ -28,6 +28,7 @@ uow.withRetryPolicy(new RetryPolicy()
     - [ ] Registry of issued DML for each operation — capture exact batches for insert/update/upsert/delete/etc.
     - [ ] DML Counter — total DML statements and rows processed; expose via results.
     - [ ] Mock Errors - mock different DML errors.
+    - [ ] Update/Upsert should update record reference
 - [ ] Supported Operations:
     - [ ] insert
     - [ ] update
