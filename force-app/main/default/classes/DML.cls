@@ -298,14 +298,10 @@ public inherited sharing class DML implements Commitable {
         return this.stripInaccessible(AccessType.UPDATABLE);
     }
 
-    public Commitable stripInaccessible(AccessType accessType) {
+    public Commitable stripInaccessible(System.AccessType accessType) { // TODO: CREATABLE/UPDATABLE - it doesn't have sense to have it global
         this.insertCommand.stripInaccessible(accessType);
         this.updateCommand.stripInaccessible(accessType);
         this.upsertCommand.stripInaccessible(accessType);
-        this.mergeCommand.stripInaccessible(accessType);
-        this.deleteCommand.stripInaccessible(accessType);
-        this.undeleteCommand.stripInaccessible(accessType);
-        this.publishCommand.stripInaccessible(accessType);
         return this;
     }
 
@@ -342,7 +338,6 @@ public inherited sharing class DML implements Commitable {
         this.mergeCommand.allowPartialSuccess();
         this.deleteCommand.allowPartialSuccess();
         this.undeleteCommand.allowPartialSuccess();
-        this.publishCommand.allowPartialSuccess();
         return this;
     }
 
@@ -351,20 +346,13 @@ public inherited sharing class DML implements Commitable {
         this.updateCommand.skipDuplicateRules();
         this.upsertCommand.skipDuplicateRules();
         this.mergeCommand.skipDuplicateRules();
-        this.deleteCommand.skipDuplicateRules();
         this.undeleteCommand.skipDuplicateRules();
-        this.publishCommand.skipDuplicateRules();
         return this;
     }
 
     public Commitable options(Database.DmlOptions options) {
         this.insertCommand.options(options);
         this.updateCommand.options(options);
-        this.upsertCommand.options(options);
-        this.mergeCommand.options(options);
-        this.deleteCommand.options(options);
-        this.undeleteCommand.options(options);
-        this.publishCommand.options(options);
         return this;
     }
 
