@@ -682,10 +682,25 @@ private class DML_Test {
     // DELETE
 
     @IsTest
+    static void toDeleteSingleRecordById() {
+        // Setup
+        Account account = insertAccount();
+        
+        // Test
+        Test.startTest();
+            new DML()
+                .toDelete(account.Id)
+                .commitWork();
+        Test.stopTest();
+
+        // Verify
+        Assert.areEqual(0, [SELECT COUNT() FROM Account], 'Account should be deleted.');
+    }
+
+    @IsTest
     static void toDeleteSingleRecord() {
         // Setup
-        Account account = new Account(Name = 'Test Account');
-        insert account;
+        Account account = insertAccount();
         
         // Test
         Test.startTest();
@@ -721,18 +736,30 @@ private class DML_Test {
     @IsTest
     static void toDeleteListOfRecords() {
         // Setup
-        List<Account> accounts = new List<Account>{
-            new Account(Name = 'Test Account 1'),
-            new Account(Name = 'Test Account 2'),
-            new Account(Name = 'Test Account 3')
-        };
-
-        insert accounts;
+        List<Account> accounts = insertAccounts();
 
         // Test
         Test.startTest();
             new DML()
                 .toDelete(accounts)
+                .commitWork();
+        Test.stopTest();
+
+        // Verify
+        Assert.areEqual(0, [SELECT COUNT() FROM Account], 'Accounts should be deleted.');
+    }
+
+    @IsTest
+    static void toDeleteMultipleRecordsById() {
+        // Setup
+        List<Account> accounts = insertAccounts();
+
+        // Test
+        Test.startTest();
+            Set<Id> accountIds = new Map<Id, Account>(accounts).keySet();
+
+            new DML()
+                .toDelete(accountIds)
                 .commitWork();
         Test.stopTest();
 
@@ -783,6 +810,90 @@ private class DML_Test {
 
         // Verify
         Assert.areEqual(0, [SELECT COUNT() FROM Account], 'Accounts should be deleted.');
+    }
+
+    // UNDELETE
+
+    @IsTest
+    static void toUndeleteSingleRecordById() {
+        // Setup
+        Account account = insertAccount();
+
+        delete account;
+
+        Assert.areEqual(0, [SELECT COUNT() FROM Account], 'Account should be deleted.');
+
+        // Test
+        Test.startTest();
+            new DML()
+                .toUndelete(account.Id)
+                .commitWork();
+        Test.stopTest();
+        
+        // Verify
+        Assert.areEqual(1, [SELECT COUNT() FROM Account], 'Account should be undeleted.');
+    }
+
+    @IsTest
+    static void toUndeleteSingleRecord() {
+        // Setup
+        Account account = insertAccount();
+
+        delete account;
+
+        Assert.areEqual(0, [SELECT COUNT() FROM Account], 'Account should be deleted.');
+
+        // Test
+        Test.startTest();
+            new DML()
+                .toUndelete(account)
+                .commitWork();
+        Test.stopTest();
+        
+        // Verify
+        Assert.areEqual(1, [SELECT COUNT() FROM Account], 'Account should be undeleted.');
+    }
+
+    @IsTest
+    static void toUndeleteMultipleRecordsById() {
+        // Setup
+        List<Account> accounts = insertAccounts();
+
+        delete accounts;
+
+        Assert.areEqual(0, [SELECT COUNT() FROM Account], 'Accounts should be deleted.');
+
+        // Test
+        Test.startTest();
+            Set<Id> accountIds = new Map<Id, Account>(accounts).keySet();
+
+            new DML()
+                .toUndelete(accountIds)
+                .commitWork();
+        Test.stopTest();
+        
+        // Verify
+        Assert.areEqual(accounts.size(), [SELECT COUNT() FROM Account], 'Accounts should be undeleted.');
+    }
+
+    @IsTest
+    static void toUndeleteMultipleRecords() {
+        // Setup
+        List<Account> accounts = insertAccounts();
+
+        delete accounts;
+
+        Assert.areEqual(0, [SELECT COUNT() FROM Account], 'Accounts should be deleted.');
+
+        // Test
+        Test.startTest();
+            new DML()
+                .toUndelete(accounts)
+                .commitWork();
+        Test.stopTest();
+        
+        // Verify
+        Assert.areEqual(accounts.size(), [SELECT COUNT() FROM Account], 'Accounts should be undeleted.');
     }
 
     // PLATFORM EVENT
@@ -841,6 +952,26 @@ private class DML_Test {
         Assert.areEqual(10, [SELECT COUNT() FROM Opportunity], 'Opportunities should be inserted.');
         Assert.areEqual(55, [SELECT COUNT() FROM Product2], 'Products should be inserted.');
         Assert.areEqual(55, [SELECT COUNT() FROM PricebookEntry], 'Pricebook entries should be inserted.');
+    }
+
+    // HELPERS
+
+    static Account insertAccount() {
+        Account account = new Account(Name = 'Test Account');
+        insert account;
+
+        return account;
+    }
+
+    static List<Account> insertAccounts() {
+        List<Account> accounts = new List<Account>{
+            new Account(Name = 'Test Account 1'),
+            new Account(Name = 'Test Account 2'),
+            new Account(Name = 'Test Account 3')
+        };
+        insert accounts;
+
+        return accounts;
     }
 
     static User minimumAccessUser() {

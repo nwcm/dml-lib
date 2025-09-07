@@ -1,5 +1,5 @@
 - [ ] Database.DmlOptions options to pass 
-    — [x] support a global default (uow.withDefaultOptions(opts)) 
+    — [x] support a global default (uow.options(opts)) 
     - [ ] support per-operation override (.withOptions(perOpOpts))
 - [ ] Fluent Bulk records update without the loop e.g.
     - [x] DML.Records(opportunities).with(Opportunity.Status, 'Closed Won') — loop-free builder that batches field patches, applies FLS (per mode), then registers the op.
@@ -50,9 +50,11 @@ dml.withRetryPolicy(new RetryPolicy()
     - [ ] merge (surface MergeResult[])
     - [ ] publish event (__e queued and published during commit; include outcomes)
 - [ ] Return Database.Result or some other wrapper — return UowResult with per-op DmlOutcome, raw SaveResult[]/DeleteResult[]/MergeResult[], limits snapshot, events, retries.
-- [x] Commit hooks - `DML.Hook`
+- [] Commit hooks - `DML.Hook`
     - [x] Before commit hook — pure in-memory prep (e.g., finalize patches) before any DML.
     - [x] After commit hook — enqueue async work / notifications; fires only if commit succeeds.
+    - [ ] before hook should got the list of records to be inserted
+    - [ ] after hook should get the results
 - [ ] 100% code coverage — tests for happy/error paths, CRUD/FLS modes, DmlOptions, chunking, lock-retry, preview, hooks, mocking registries, and relationship ordering.
 - [ ] Trigger bypass (optional) — opt-in static context flag toggled around commit; triggers must check it; default OFF.
 - [ ] Chunk Size — protect against DML row/CPU limits. uow.withChunkSize(200) (default 200) to mimic trigger batch sizes and reduce recursion; auto-downshift on retries if enabled.
@@ -87,3 +89,20 @@ class UowResult {
     - [ ] Try to build dependency graph between objects (tree?)
 
 ---
+
+```java
+DML.systemMode();
+
+DML.Insert.add();
+
+DML.Update.userMode().add();
+
+DML.Delete.userMode().add();
+
+DML.commitWork();
+
+DML dml = new DML();
+
+dml.toInsert(record);
+
+```

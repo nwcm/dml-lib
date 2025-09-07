@@ -5,13 +5,37 @@
  * PMD False Positives:
 **/
 public inherited sharing class DML implements Commitable {
+    public static Record Record(Id recordId) {
+        return new DmlRecord(recordId);
+    }
+
     public static Record Record(SObject record) {
         return new DmlRecord(record);
     }
 
-    public static Records Records(Iterable<SObject> records) { // to process multiple records at once
+    public static Records Records(List<SObject> records) { // to process multiple records at once
         return new DmlRecords(records);
     }
+
+    public static Records Records(Iterable<Id> recordIds) {
+        return new DmlRecords(recordIds);
+    }
+
+    // public interface InsertOptions {
+    //     InsertOptions stripNotCreatableFields();
+    // }
+
+    // public interface UpdateOptions {
+
+    // }
+
+    // public interface UpsertOptions {
+
+    // }
+
+    // public interface DeleteOptions {
+
+    // }
 
     public interface Commitable {
         // Insert
@@ -31,16 +55,21 @@ public inherited sharing class DML implements Commitable {
         Commitable toUpsert(DML.Records records);
         // Commitable toUpsert(SObject record, SObjectField externalIdField);
         // Delete
+        Commitable toDelete(Id recordId);
         Commitable toDelete(SObject record);
-        Commitable toDelete(Iterable<SObject> records);
+        Commitable toDelete(Iterable<Id> recordIds);
+        Commitable toDelete(List<SObject> records);
+        // option makeHardDelete(); TODO
         // Undelete
         Commitable toUndelete(Id recordId);
         Commitable toUndelete(SObject record);
         Commitable toUndelete(Iterable<Id> recordIds);
         Commitable toUndelete(List<SObject> records);
         // Merge
-        Commitable toMerge(SObject record, SObject recordToMerge);
-        Commitable toMerge(Iterable<SObject> records, SObject recordToMerge);
+        Commitable toMerge(SObject mergeToRecord, Id duplicateId);
+        Commitable toMerge(SObject mergeToRecord, SObject duplicateRecord);
+        Commitable toMerge(SObject mergeToRecord, List<SObject> duplicateRecords);
+        Commitable toMerge(SObject mergeToRecord, Iterable<Id> duplicateIds);
         // Platform Event
         Commitable toPublish(SObject record);
         Commitable toPublish(Iterable<SObject> records);
@@ -49,8 +78,8 @@ public inherited sharing class DML implements Commitable {
         // Field Level Security
         Commitable userMode();
         Commitable systemMode();
-        Commitable stripNotCreatableFields();
-        Commitable stripNotUpdatableFields();
+        Commitable stripNotCreatableFields(); // TODO: This applies only to insert, doesn't make sense to have it global    
+        Commitable stripNotUpdatableFields(); // TODO: This applies only to update, doesn't make sense to have it global
         // Sharing Mode
         Commitable withSharing();
         Commitable withoutSharing();
@@ -61,6 +90,7 @@ public inherited sharing class DML implements Commitable {
         // Commitable executionOrder(List<SObjectType> executionOrder);
         Commitable commitHook(DML.Hook callback);
         // Save
+        // void dryRun();
         void commitWork();
     }
     
@@ -82,6 +112,11 @@ public inherited sharing class DML implements Commitable {
         List<Record> get();
     }
 
+    // public class Result {
+    //     Boolean isSuccess();
+
+    // }
+
     public interface Hook {
         void before();
         void after();
@@ -96,13 +131,13 @@ public inherited sharing class DML implements Commitable {
 
     // Implementation
 
-    private final DmlCommand insertCommand = new InsertUow();
-    private final DmlCommand updateCommand = new UpdateUow();
-    private final DmlCommand upsertCommand = new UpsertUow();
-    private final DmlCommand mergeCommand = new MergeUow();
-    private final DmlCommand deleteCommand = new DeleteUow();
-    private final DmlCommand undeleteCommand = new UndeleteUow();
-    private final DmlCommand publishCommand = new PlatformEventUow();
+    private final DmlOperation insertCommand = new InsertOperation();
+    private final DmlOperation updateCommand = new UpdateOperation();
+    private final DmlOperation upsertCommand = new UpsertOperation();
+    private final DmlOperation mergeCommand = new MergeOperation();
+    private final DmlOperation deleteCommand = new DeleteOperation();
+    private final DmlOperation undeleteCommand = new UndeleteOperation();
+    private final DmlOperation publishCommand = new PlatformEventOperation();
 
     private DML.Hook hook = null;
 
@@ -187,58 +222,78 @@ public inherited sharing class DML implements Commitable {
 
     // Delete
 
-    public Commitable toDelete(SObject record) {
-        if (String.isBlank(record.Id)) {
+    public Commitable toDelete(Id recordId) {
+        if (String.isBlank(recordId)) {
             throw new DmlException('Only existing records can be registered as deleted.');
         }
 
-        this.deleteCommand.register(DML.Record(record));
+        this.deleteCommand.register(DML.Record(recordId));
 
         return this;
     }
 
-    public Commitable toDelete(Iterable<SObject> records) {
-        for (SObject record : records) {
-            this.toDelete(record);
+    public Commitable toDelete(SObject record) {
+        return this.toDelete(record.Id);
+    }
+
+    public Commitable toDelete(Iterable<Id> recordIds) {
+        for (Id recordId : recordIds) {
+            this.toDelete(recordId);
         }
         
         return this;
     }
 
+    public Commitable toDelete(List<SObject> records) {
+        return this.toDelete(new Map<Id, SObject>(records).keySet());
+    }
+
     // Undelete
 
     public Commitable toUndelete(Id recordId) {
-        // TODO
+        if (String.isBlank(recordId)) {
+            throw new DmlException('Only existing records can be registered as undeleted.');
+        }
+
+        this.undeleteCommand.register(DML.Record(recordId));
+
         return this;
     }
 
     public Commitable toUndelete(SObject record) {
-        this.undeleteCommand.register(DML.Record(record));
-        return this;
+        return this.toUndelete(record.Id);
     }
 
     public Commitable toUndelete(Iterable<Id> recordIds) {
-        // TODO
+        for (Id recordId : recordIds) {
+            this.toUndelete(recordId);
+        }
+        
         return this;
     }
 
     public Commitable toUndelete(List<SObject> records) {
-        // TODO
-        return this;
+        return this.toUndelete(new Map<Id, SObject>(records).keySet());
     }
 
     // Merge
 
-    public Commitable toMerge(SObject record, SObject recordToMerge) {
-        // TODO
+    public Commitable toMerge(SObject mergeToRecord, Id duplicateId) {
         return this;
     }
 
-    public Commitable toMerge(Iterable<SObject> records, SObject recordToMerge) {
-        // TODO
+    public Commitable toMerge(SObject mergeToRecord, SObject duplicateRecord) {
         return this;
     }
 
+    public Commitable toMerge(SObject mergeToRecord, List<SObject> duplicateRecords) {
+        return this;
+    }
+
+    public Commitable toMerge(SObject mergeToRecord, Iterable<Id> duplicateIds) {
+        return this;
+    }
+    
     // Platform Event
 
     public Commitable toPublish(SObject record) {
@@ -369,9 +424,19 @@ public inherited sharing class DML implements Commitable {
         try {
             this.hook?.before();
 
+            // if (isMockingModeEnabled) {
+            //     this.insertCommand.mockCommitWork();
+            //     this.updateCommand.mockCommitWork();
+            //     this.upsertCommand.mockCommitWork();
+            //     this.mergeCommand.mockCommitWork();
+            //     this.deleteCommand.mockCommitWork();
+            //     this.undeleteCommand.mockCommitWork();
+            //     this.publishCommand.mockCommitWork();
+            // }
+
             this.insertCommand.commitWork();
-            this.updateCommand.commitWork();
             this.upsertCommand.commitWork();
+            this.updateCommand.commitWork();
             this.mergeCommand.commitWork();
             this.deleteCommand.commitWork();
             this.undeleteCommand.commitWork();
@@ -386,7 +451,7 @@ public inherited sharing class DML implements Commitable {
         }
     }
 
-    public abstract class DmlCommand {
+    public abstract class DmlOperation {
         protected Map<String, RecordsContainer> recordsProcessContainerByType = new Map<String, RecordsContainer>();
         protected System.AccessLevel accessMode = System.AccessLevel.USER_MODE;
         protected System.AccessType accessType = null;
@@ -394,7 +459,7 @@ public inherited sharing class DML implements Commitable {
         protected Boolean allOrNone = true;
         protected Database.DmlOptions options = new Database.DMLOptions();
 
-        public DmlCommand() {
+        public DmlOperation() {
             this.options.optAllOrNone = this.allOrNone;
         }
 
@@ -418,13 +483,13 @@ public inherited sharing class DML implements Commitable {
             this.sharingExecutor = new WithoutSharing();
         }
 
-        public DmlCommand allowPartialSuccess() {
+        public DmlOperation allowPartialSuccess() {
             this.allOrNone = false;
             this.options.optAllOrNone = false;
             return this;
         }
 
-        public DmlCommand skipDuplicateRules() {
+        public DmlOperation skipDuplicateRules() {
             this.options.duplicateRuleHeader.allowSave = true;
             return this;
         }
@@ -455,6 +520,7 @@ public inherited sharing class DML implements Commitable {
         }
 
         public abstract void execute();
+        // public abstract void executeMock();
     }
 
     private class RecordsContainer {
@@ -478,9 +544,19 @@ public inherited sharing class DML implements Commitable {
 
             return Security.stripInaccessible(accessType, recordsToProcess).getRecords();
         }
+        
+        public List<Id> getRecordIdsToProcess() {
+            List<Id> recordIdsToProcess = new List<Id>();
+
+            for (EnhancedRecord enhancedRecord : this.enhancedRecords) {
+                recordIdsToProcess.add(enhancedRecord.getRecordId());
+            }
+
+            return recordIdsToProcess;
+        }
     }
 
-    public inherited sharing class InsertUow extends DmlCommand {
+    public inherited sharing class InsertOperation extends DmlOperation {
         public override void execute() {
             for (String objectTypeName : this.recordsProcessContainerByType.keySet()) { //TODO Move loop to parent class
                 Database.insert(this.recordsProcessContainerByType.get(objectTypeName).getRecordsToProcess(this.accessType), this.options, this.accessMode);
@@ -488,7 +564,7 @@ public inherited sharing class DML implements Commitable {
         }
     }
 
-    public inherited sharing class UpdateUow extends DmlCommand {
+    public inherited sharing class UpdateOperation extends DmlOperation {
         public override void execute() {
             for (String objectTypeName : this.recordsProcessContainerByType.keySet()) {
                 Database.update(this.recordsProcessContainerByType.get(objectTypeName).getRecordsToProcess(this.accessType), this.options, this.accessMode);
@@ -496,7 +572,7 @@ public inherited sharing class DML implements Commitable {
         }
     }
 
-    public inherited sharing class UpsertUow extends DmlCommand {
+    public inherited sharing class UpsertOperation extends DmlOperation {
         public override void execute() {
             for (String objectTypeName : this.recordsProcessContainerByType.keySet()) {
                 Database.upsert(this.recordsProcessContainerByType.get(objectTypeName).getRecordsToProcess(this.accessType), this.allOrNone, this.accessMode);
@@ -504,31 +580,31 @@ public inherited sharing class DML implements Commitable {
         }
     }
 
-    public inherited sharing class MergeUow extends DmlCommand {
+    public inherited sharing class MergeOperation extends DmlOperation {
         public override void execute() {
             for (String objectTypeName : this.recordsProcessContainerByType.keySet()) {
-                // Database.merge(this.recordsProcessContainerByType.get(objectTypeName).getRecordsToProcess(this.accessType), this.options, this.accessMode);
+                // Database.merge(mergeToRecord, duplicateIds, this.allOrNone, this.accessMode);
             }
         }
     }
 
-    public inherited sharing class DeleteUow extends DmlCommand {
+    public inherited sharing class DeleteOperation extends DmlOperation {
         public override void execute() {
             for (String objectTypeName : this.recordsProcessContainerByType.keySet()) {
-                Database.delete(this.recordsProcessContainerByType.get(objectTypeName).getRecordsToProcess(this.accessType), this.allOrNone, this.accessMode);
+                Database.delete(this.recordsProcessContainerByType.get(objectTypeName).getRecordIdsToProcess(), this.allOrNone, this.accessMode);
             }
         }
     }
 
-    public inherited sharing class UndeleteUow extends DmlCommand {
+    public inherited sharing class UndeleteOperation extends DmlOperation {
         public override void execute() {
             for (String objectTypeName : this.recordsProcessContainerByType.keySet()) {
-                Database.undelete(this.recordsProcessContainerByType.get(objectTypeName).getRecordsToProcess(this.accessType), this.allOrNone, this.accessMode);
+                Database.undelete(this.recordsProcessContainerByType.get(objectTypeName).getRecordIdsToProcess(), this.allOrNone, this.accessMode);
             }
         }
     }
 
-    public inherited sharing class PlatformEventUow extends DmlCommand {
+    public inherited sharing class PlatformEventOperation extends DmlOperation {
         public override void execute() {
             List<SObject> events = new List<SObject>();
 
@@ -541,46 +617,50 @@ public inherited sharing class DML implements Commitable {
     }
 
     private interface DmlSharing {
-        void execute(DmlCommand executor);
+        void execute(DmlOperation executor);
     }
 
     private inherited sharing class InheritedSharing implements DmlSharing {
-        public void execute(DmlCommand executor) {
+        public void execute(DmlOperation executor) {
             executor.execute();
         }
     }
 
     private without sharing class WithoutSharing implements DmlSharing {
-        public void execute(DmlCommand executor) {
+        public void execute(DmlOperation executor) {
             executor.execute();
         }
     }
 
     private with sharing class WithSharing implements DmlSharing {
-        public void execute(DmlCommand executor) {
+        public void execute(DmlOperation executor) {
             executor.execute();
         }
     }
 
     private class DmlRecord implements Record {
-        private EnhancedRecord unitOfWork;
+        private EnhancedRecord enhancedRecord;
 
         public DmlRecord(SObject record) {
-            this.unitOfWork = new EnhancedRecord(record);
+            this.enhancedRecord = new EnhancedRecord(record);
+        }
+
+        public DmlRecord(Id recordId) {
+            this.enhancedRecord = new EnhancedRecord(recordId);
         }
 
         public DmlRecord withRelationship(SObjectField relationshipField, SObject relatedToRecord) {
-            this.unitOfWork.withRelationship(relationshipField, relatedToRecord);
+            this.enhancedRecord.withRelationship(relationshipField, relatedToRecord);
             return this;
         }
 
         public DmlRecord withRelationship(SObjectField relationshipField, SObjectField externalIdField, Object externalId) {
-            this.unitOfWork.withExternalRelationship(relationshipField, externalIdField, externalId);
+            this.enhancedRecord.withExternalRelationship(relationshipField, externalIdField, externalId);
             return this;
         }
 
         public EnhancedRecord get() {
-            return this.unitOfWork;
+            return this.enhancedRecord;
         }
     }
 
@@ -615,12 +695,18 @@ public inherited sharing class DML implements Commitable {
     }
 
     private class EnhancedRecord {
+        private Id currentRecordId;
         private SObject currentRecord;
         private List<ParentRelationship> parentRelationships = new List<ParentRelationship>();
         private List<ExternalRelationship> externalRelationships = new List<ExternalRelationship>();
 
         public EnhancedRecord(SObject currentRecord) {
             this.currentRecord = currentRecord;
+            this.currentRecordId = currentRecord.Id;
+        }
+
+        public EnhancedRecord(Id currentRecordId) {
+            this.currentRecordId = currentRecordId;
         }
 
         public void withRelationship(SObjectField relationshipField, SObject relatedToRecord) {
@@ -649,7 +735,7 @@ public inherited sharing class DML implements Commitable {
         }
 
         public String getSObjectType() {
-            return this.currentRecord.getSObjectType().toString();
+            return this.currentRecord?.getSObjectType()?.toString() ?? this.currentRecordId.getSObjectType().toString();
         }
 
         public Boolean isRecordAlreadyExists() {
@@ -658,6 +744,10 @@ public inherited sharing class DML implements Commitable {
 
         public SObject getRecord() {
             return this.currentRecord;
+        }
+
+        public Id getRecordId() {
+            return this.currentRecordId;
         }
     }
 
@@ -732,3 +822,12 @@ public inherited sharing class DML implements Commitable {
         }
     }
 }
+
+/*
+new DML()
+    .toInsert(record)
+    .toUpdate(record2)
+    .systemMode()
+    .withoutSharing()
+    .commitWork();
+*/
