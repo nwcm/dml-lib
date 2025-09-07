@@ -13,29 +13,13 @@ public inherited sharing class DML implements Commitable {
         return new DmlRecord(record);
     }
 
-    public static Records Records(List<SObject> records) { // to process multiple records at once
+    public static Records Records(List<SObject> records) {
         return new DmlRecords(records);
     }
 
     public static Records Records(Iterable<Id> recordIds) {
         return new DmlRecords(recordIds);
     }
-
-    // public interface InsertOptions {
-    //     InsertOptions stripNotCreatableFields();
-    // }
-
-    // public interface UpdateOptions {
-
-    // }
-
-    // public interface UpsertOptions {
-
-    // }
-
-    // public interface DeleteOptions {
-
-    // }
 
     public interface Commitable {
         // Insert
@@ -93,9 +77,9 @@ public inherited sharing class DML implements Commitable {
         // void dryRun();
         void commitWork();
     }
-    
+
     public interface Record {
-        // Record with(SObjectField field, Object value); TODO 
+        Record with(SObjectField field, Object value); 
         Record withRelationship(SObjectField targetField, SObject relatedRecord);
         Record withRelationship(SObjectField targetField, SObjectField externalIdField, Object externalId);
         
@@ -104,7 +88,7 @@ public inherited sharing class DML implements Commitable {
     }
 
     public interface Records {
-        // Records with(SObjectField field, Object value); TODO
+        Records with(SObjectField field, Object value); 
         Records withRelationship(SObjectField targetField, SObject relatedRecord);
         Records withRelationship(SObjectField targetField, SObjectField externalIdField, Object externalId);
         
@@ -649,6 +633,11 @@ public inherited sharing class DML implements Commitable {
             this.enhancedRecord = new EnhancedRecord(recordId);
         }
 
+        public DmlRecord with(SObjectField field, Object value) {
+            this.enhancedRecord.with(field, value);
+            return this;
+        }
+
         public DmlRecord withRelationship(SObjectField relationshipField, SObject relatedToRecord) {
             this.enhancedRecord.withRelationship(relationshipField, relatedToRecord);
             return this;
@@ -665,16 +654,24 @@ public inherited sharing class DML implements Commitable {
     }
 
     private class DmlRecords implements Records {
-        private List<DML.Record> enhancedRecords = new List<DML.Record>();
+        private List<DML.Record> dmlRecords = new List<DML.Record>();
 
         public DmlRecords(Iterable<SObject> records) {
             for (SObject record : records) {
-                this.enhancedRecords.add(DML.Record(record));
+                this.dmlRecords.add(DML.Record(record));
             }
         }
 
+        public DmlRecords with(SObjectField field, Object value) {
+            for (DML.Record dmlRecord : this.dmlRecords) {
+                dmlRecord.with(field, value);
+            }
+
+            return this;
+        }
+
         public DmlRecords withRelationship(SObjectField relationshipField, SObject relatedToRecord) {
-            for (DML.Record dmlRecord : this.enhancedRecords) {
+            for (DML.Record dmlRecord : this.dmlRecords) {
                 dmlRecord.withRelationship(relationshipField, relatedToRecord);
             }
 
@@ -682,7 +679,7 @@ public inherited sharing class DML implements Commitable {
         }
 
         public DmlRecords withRelationship(SObjectField relationshipField, SObjectField externalIdField, Object externalId) {
-            for (DML.Record dmlRecord : this.enhancedRecords) {
+            for (DML.Record dmlRecord : this.dmlRecords) {
                 dmlRecord.withRelationship(relationshipField, externalIdField, externalId);
             }
 
@@ -690,7 +687,7 @@ public inherited sharing class DML implements Commitable {
         }
 
         public List<DML.Record> get() {
-            return this.enhancedRecords;
+            return this.dmlRecords;
         }
     }
 
@@ -707,6 +704,10 @@ public inherited sharing class DML implements Commitable {
 
         public EnhancedRecord(Id currentRecordId) {
             this.currentRecordId = currentRecordId;
+        }
+
+        public void with(SObjectField field, Object value) {
+            this.currentRecord.put(field, value);
         }
 
         public void withRelationship(SObjectField relationshipField, SObject relatedToRecord) {

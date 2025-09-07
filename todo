@@ -9,6 +9,7 @@
     - [ ] clear internal state afterward.
 - [ ] General and per-operation overrides e.g. new DML(options), registerInsert(..., options) 
 - [ ] allow allOrNone, DMLOptions, and SecurityMode per op; merge overrides over UoW defaults.
+- [x] Update list of records at once e.g accounts.with(Account.Unit, 'test') - DML.Records(records).with(field, value)
 - [ ] Static DML eg. DML.Global.toInsert(); DML.Global.commitWork(); DML.Shared.toInsert();
 - [x] Field-Level Security
     - [x] USER_MODE — enforce CRUD/FLS strictly; fail on violations with clear errors.
@@ -104,5 +105,7 @@ DML.commitWork();
 DML dml = new DML();
 
 dml.toInsert(record);
+
+DML.Commitable db = new DML();
 
 ```
