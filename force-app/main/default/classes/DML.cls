@@ -2,8 +2,19 @@
  * Copyright (c) 2025 Beyond The Cloud Sp. z o.o. (BeyondTheCloud.Dev)
  * Licensed under the MIT License (https://github.com/beyond-the-cloud-dev/dml-lib/blob/main/LICENSE)
  *
+ * v1.0.0
+ *
  * PMD False Positives:
+ * - MethodNamingConventions - Some methods are uppercase to indicate that they are "constructors" of othere internal classes
+ * - CyclomaticComplexity: It is a library and we tried to put everything into ONE class
+ * - CognitiveComplexity: It is a library and we tried to put everything into ONE class
+ * - ExcessivePublicCount: It is a library and we tried to put everything into ONE class
+ * - FieldDeclarationsShouldBeAtStart: The most important methods and interfaces are at the top of the class
+ * - AvoidDebugStatements: Debug statements are used for debugging purposes
+ * - OperationWithLimitsInLoop: DMLs are executed by SObject Type and the loop is through different types
+ * - ApexCRUDViolation: DMLs are executed by User Mode or System Mode
 **/
+@SuppressWarnings('PMD.MethodNamingConventions,PMD.CyclomaticComplexity,PMD.CognitiveComplexity,PMD.ExcessivePublicCount,PMD.FieldDeclarationsShouldBeAtStart,PMD.AvoidDebugStatements,PMD.OperationWithLimitsInLoop,PMD.ApexCRUDViolation')
 public inherited sharing class DML implements Commitable {
     public static Record Record(Id recordId) {
         return new DmlRecord(recordId);
@@ -823,12 +834,3 @@ public inherited sharing class DML implements Commitable {
         }
     }
 }
-
-/*
-new DML()
-    .toInsert(record)
-    .toUpdate(record2)
-    .systemMode()
-    .withoutSharing()
-    .commitWork();
-*/
