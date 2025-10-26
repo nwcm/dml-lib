@@ -341,7 +341,6 @@ private class DML_Test {
 	static void toUpdateWithRelationshipMultipleRecords() {
 		// Setup
 		Account newAccount = getAccount(1);
-
 		Contact newContact = getContact(1);
 		Contact newContact2 = getContact(2);
 
@@ -1353,7 +1352,9 @@ private class DML_Test {
 		
 		// Test
 		Test.startTest();
-			new DML().toInsert(account).dryRun();
+			new DML()
+				.toInsert(account)
+				.dryRun();
 		Test.stopTest();
 
 		// Verify
@@ -1367,7 +1368,167 @@ private class DML_Test {
 		Account account = getAccount(1);
 		
 		// Test
-		new DML().toInsert(account).preview();
+		new DML()
+			.toInsert(account)
+			.preview();
+	}
+
+	// CONFIGURATION
+	
+	@IsTest
+	static void executionOrder() {
+		// Setup
+        Account newAccount = getAccount(1);
+		Contact newContact = getContact(1);
+        Opportunity newOpportunity = getOpportunity(1);
+
+		// Test
+		Test.startTest();
+			new DML(new List<SObjectType>{ Account.SObjectType, Contact.SObjectType, Opportunity.SObjectType })
+				.toInsert(newOpportunity)
+				.toInsert(newAccount)
+				.toInsert(newContact)
+				.commitWork();
+		Test.stopTest();
+
+		// Verify
+		Assert.areEqual(1, [SELECT COUNT() FROM Account], 'Account should be inserted.');
+		Assert.areEqual(1, [SELECT COUNT() FROM Contact], 'Contact should be inserted.');
+		Assert.areEqual(1, [SELECT COUNT() FROM Opportunity], 'Opportunity should be inserted.');
+	}
+
+	@IsTest
+	static void executionOrderWhenOneOfObjectsIsNotRegistered() {
+		// Setup
+        Account newAccount = getAccount(1);
+		Contact newContact = getContact(1);
+
+		// Test
+		Test.startTest();
+			new DML(new List<SObjectType>{ Account.SObjectType, Contact.SObjectType, Opportunity.SObjectType })
+				.toInsert(newAccount)
+				.toInsert(newContact)
+				.commitWork();
+		Test.stopTest();
+
+		// Verify
+		Assert.areEqual(1, [SELECT COUNT() FROM Account], 'Account should be inserted.');
+		Assert.areEqual(1, [SELECT COUNT() FROM Contact], 'Contact should be inserted.');
+		Assert.areEqual(0, [SELECT COUNT() FROM Opportunity], 'Opportunity should not be inserted.');
+	}
+
+	@IsTest
+	static void executionOrderWhenOneOfObjectsIsRegisteredButNotInTheOrder() {
+		// Setup
+        Account newAccount = getAccount(1);
+		Contact newContact = getContact(1);
+		Opportunity newOpportunity = getOpportunity(1);
+
+		Exception expectedException = null;
+		
+		// Test
+		Test.startTest();
+			try {
+				new DML(new List<SObjectType>{ Account.SObjectType, Contact.SObjectType })
+					.toInsert(newAccount)
+					.toInsert(newContact)
+					.toInsert(newOpportunity)
+					.commitWork();
+			} catch (Exception e) {
+				expectedException = e;
+			}
+		Test.stopTest();
+
+		// Verify
+		Assert.isNotNull(expectedException, 'Expected exception to be thrown.');
+		Assert.areEqual('Only the following types can be registered: (Account, Contact)', expectedException.getMessage(), 'Expected exception message should be thrown.');
+	}
+
+	// RECORD
+
+	@IsTest
+	static void singleSObjectRecordWithValue() {
+		// Setup
+		Account newAccount = getAccount(1);
+
+		// Test
+		Test.startTest();
+			new DML()
+				.toInsert(DML.Record(newAccount)
+					.with(Account.Name, 'New Test Account')
+					.with(Account.Industry, 'New Test Industry')
+					.with(Account.Description, 'New Test Description')
+				)
+				.commitWork();
+		Test.stopTest();
+
+		// Verify
+		Assert.areEqual(1, [SELECT COUNT() FROM Account], 'Account should be inserted.');
+
+		List<Account> accounts = [SELECT Id, Name, Industry, Description FROM Account LIMIT 1];
+
+		Assert.areEqual('New Test Account', accounts[0].Name, 'Account name should be "New Test Account".');
+		Assert.areEqual('New Test Industry', accounts[0].Industry, 'Account industry should be "New Test Industry".');
+		Assert.areEqual('New Test Description', accounts[0].Description, 'Account description should be "New Test Description".');
+	}
+
+	@IsTest
+	static void singleIdRecordWithValue() {
+		// Setup
+		Account newAccount = getAccount(1);
+		insert newAccount;
+
+		// Test
+		Test.startTest();
+			new DML()
+				.toUpdate(DML.Record(newAccount.Id)
+					.with(Account.Name, 'New Test Account')
+					.with(Account.Industry, 'New Test Industry')
+					.with(Account.Description, 'New Test Description')
+				)
+				.commitWork();
+		Test.stopTest();
+
+		// Verify
+		Assert.areEqual(1, [SELECT COUNT() FROM Account], 'Account should be updated.');
+
+		List<Account> accounts = [SELECT Id, Name, Industry, Description FROM Account LIMIT 1];
+
+		Assert.areEqual('New Test Account', accounts[0].Name, 'Account name should be "New Test Account".');
+		Assert.areEqual('New Test Industry', accounts[0].Industry, 'Account industry should be "New Test Industry".');
+		Assert.areEqual('New Test Description', accounts[0].Description, 'Account description should be "New Test Description".');
+	}
+
+	// RECORDS
+
+	@IsTest
+	static void multipleSObjectRecordsWithValue() {
+		// Setup
+		Account newAccount1 = getAccount(1);
+		Account newAccount2 = getAccount(2);
+
+		List<Account> newAccounts = new List<Account>{ newAccount1, newAccount2 };
+
+		// Test
+		Test.startTest();
+			new DML()
+				.toInsert(DML.Records(newAccounts)
+					.with(Account.Industry, 'New Test Industry')
+					.with(Account.Description, 'New Test Description')
+				)
+				.commitWork();
+		Test.stopTest();
+
+		// Verify
+		Assert.areEqual(2, [SELECT COUNT() FROM Account], 'Accounts should be inserted.');
+
+		List<Account> accounts = [SELECT Id, Industry, Description FROM Account LIMIT 2];
+
+		Assert.areEqual('New Test Industry', accounts[0].Industry, 'Account industry should be "New Test Industry".');
+		Assert.areEqual('New Test Description', accounts[0].Description, 'Account description should be "New Test Description".');
+		
+		Assert.areEqual('New Test Industry', accounts[1].Industry, 'Account industry should be "New Test Industry".');
+		Assert.areEqual('New Test Description', accounts[1].Description, 'Account description should be "New Test Description".');
 	}
 
 	// COMPLEX

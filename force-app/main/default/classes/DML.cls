@@ -26,12 +26,12 @@ public inherited sharing class DML implements Commitable {
         private set;
     }
 
-    public static Record Record(Id recordId) {
-        return new DmlRecord(recordId);
-    }
-
     public static Record Record(SObject record) {
         return new DmlRecord(record);
+    }
+
+    public static Record Record(Id recordId) {
+        return new DmlRecord(recordId);
     }
 
     public static Records Records(List<SObject> records) {
@@ -80,7 +80,6 @@ public inherited sharing class DML implements Commitable {
         Commitable withSharing();
         Commitable withoutSharing();
         // Other configs
-        Commitable executionOrder(List<SObjectType> customExcutionOrder);
         Commitable allowPartialSuccess();
         Commitable options(Database.DmlOptions options);
         Commitable commitHook(DML.Hook callback);
@@ -122,6 +121,16 @@ public inherited sharing class DML implements Commitable {
     private DmlOperation publishCommand = new PlatformEventOperation();
 
     private DML.Hook hook = null;
+
+    public DML() {} // default constructor
+
+    public DML(List<SObjectType> customExecutionOrder) {
+        this.insertCommand.executionOrder(customExecutionOrder);
+        this.updateCommand.executionOrder(customExecutionOrder);
+        this.upsertCommand.executionOrder(customExecutionOrder);
+        this.deleteCommand.executionOrder(customExecutionOrder);
+        this.undeleteCommand.executionOrder(customExecutionOrder);
+    }
 
     // Insert
 
@@ -293,15 +302,6 @@ public inherited sharing class DML implements Commitable {
 
     // Other configs
 
-    public Commitable executionOrder(List<SObjectType> customExcutionOrder) {
-        this.insertCommand.executionOrder(customExcutionOrder);
-        this.updateCommand.executionOrder(customExcutionOrder);
-        this.upsertCommand.executionOrder(customExcutionOrder);
-        this.deleteCommand.executionOrder(customExcutionOrder);
-        this.undeleteCommand.executionOrder(customExcutionOrder);
-        return this;
-    }
-
     public Commitable allowPartialSuccess() {
         this.insertCommand.allowPartialSuccess();
         this.updateCommand.allowPartialSuccess();
@@ -326,7 +326,18 @@ public inherited sharing class DML implements Commitable {
 
     public void dryRun() {
         Savepoint savePoint = Database.setSavepoint();
-        this.commitWork();
+
+        this.hook?.before();
+
+        this.insertCommand.commitWork();
+        this.upsertCommand.commitWork();
+        this.updateCommand.commitWork();
+        this.deleteCommand.commitWork();
+        this.undeleteCommand.commitWork();
+        this.publishCommand.commitWork();
+
+        this.hook?.after();
+
         Database.rollback(savePoint);
     }
 
@@ -349,9 +360,9 @@ public inherited sharing class DML implements Commitable {
             throw e;
         } finally {
             Database.releaseSavepoint(savePoint);
-
-            this.reset();
         }
+
+        this.reset();
     }
 
     private void reset() {
@@ -429,7 +440,7 @@ public inherited sharing class DML implements Commitable {
             SObjectType typeName = enhancedRecord.getSObjectType();
 
             if (!this.customExecutionOrder.isEmpty() && !this.customExecutionOrder.contains(typeName)) {
-                throw new DmlException('Only the following types can be registered: ' + JSON.serialize(this.customExecutionOrder));
+                throw new DmlException('Only the following types can be registered: ' + this.customExecutionOrder);
             }
 
             if (!this.recordsProcessContainerByType.containsKey(typeName)) {
@@ -452,11 +463,16 @@ public inherited sharing class DML implements Commitable {
                 this.processBasedOnCustomOrder();
                 return;
             } 
+
             this.processBasedOnRegistrationOrder();
         }
 
         private void processBasedOnCustomOrder() {
             for (SObjectType objectTypeName : this.customExecutionOrder) {
+                if (!this.recordsProcessContainerByType.containsKey(objectTypeName)) {
+                    continue;
+                }
+
                 executeDml(objectTypeName);
             }
         }
