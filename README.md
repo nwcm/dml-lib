@@ -13,7 +13,7 @@
 <a ><img alt="API version" src="https://img.shields.io/badge/api-v65.0-blue?style=for-the-badge"></a>
 <a href="https://github.com/beyond-the-cloud-dev/dml-lib/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/badge/license-mit-green?style=for-the-badge"></a>
 
-![Deploy to Scratch Org and run tests](https://github.com/beyond-the-cloud-dev/dml-lib/actions/workflows/ci.yml/badge.svg)
+[![CI](https://github.com/beyond-the-cloud-dev/dml-lib/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/beyond-the-cloud-dev/dml-lib/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/beyond-the-cloud-dev/dml-lib/branch/main/graph/badge.svg)](https://codecov.io/gh/beyond-the-cloud-dev/dml-lib)
 </div>
 
