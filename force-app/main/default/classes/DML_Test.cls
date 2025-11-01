@@ -2,7 +2,7 @@
  * Copyright (c) 2025 Beyond The Cloud Sp. z o.o. (BeyondTheCloud.Dev)
  * Licensed under the MIT License (https://github.com/beyond-the-cloud-dev/dml-lib/blob/main/LICENSE)
  *
- * v1.1.0
+ * v1.3.0
  * 
  * PMD False Positives:
  * - CyclomaticComplexity: It is a library and we tried to put everything into ONE class
@@ -47,11 +47,86 @@ private class DML_Test {
 		Test.stopTest();
 
 		// Verify
-		Assert.areEqual(1, [SELECT COUNT() FROM Account], 'Account should be related to Contact.');
-		Assert.areEqual(1, [SELECT COUNT() FROM Contact], 'Contact should be related to Account.');
+		Assert.areEqual(1, [SELECT COUNT() FROM Account], 'Account should be inserted.');
+		Assert.areEqual(1, [SELECT COUNT() FROM Contact], 'Contact should be inserted.');
 
 		Assert.areEqual(newAccount.Id, newContact.AccountId, 'Contact should be related to Account.');
-	}       
+	}
+
+	@IsTest
+	static void toInsertWithInvalidRelationshipSingleRecord() {
+		// Setup
+		Account newAccount = getAccount(1);
+		Contact newContact = getContact(1);
+
+		// Test
+		Test.startTest();
+			Exception expectedException = null;
+
+			try {
+				new DML()
+					.toInsert(newAccount)
+					.toInsert(DML.Record(newContact).withRelationship(Contact.LastName, newAccount))
+					.commitWork();
+			} catch (Exception e) {
+				expectedException = e;
+			}
+		Test.stopTest();
+
+		// Verify
+		Assert.isNotNull(expectedException, 'Expected exception to be thrown.');
+		Assert.areEqual('Invalid argument: relationshipField. Field supplied is not a relationship field.', expectedException.getMessage(), 'Expected exception message should be thrown.');
+	}
+
+	@IsTest
+	static void toInsertWithInvalidTargetRelationshipFieldSingleRecord() {
+		// Setup
+		Account newAccount = getAccount(1);
+		Contact newContact = getContact(1);
+
+		// Test
+		Test.startTest();
+		Exception expectedException = null;
+
+		try {
+			new DML()
+				.toInsert(newAccount)
+				.toInsert(DML.Record(newContact).withRelationship(Contact.LastName, Account.Name, 'Test'))
+				.commitWork();
+		} catch (Exception e) {
+			expectedException = e;
+		}
+		Test.stopTest();
+
+		// Verify
+		Assert.isNotNull(expectedException, 'Expected exception to be thrown.');
+		Assert.areEqual('Invalid argument: relationshipField. Field supplied is not a relationship field.', expectedException.getMessage(), 'Expected exception message should be thrown.');
+	}
+
+	@IsTest
+	static void toInsertWithInvalidExternalRelationshipSingleRecord() {
+		// Setup
+		Account newAccount = getAccount(1);
+		Contact newContact = getContact(1);
+
+		// Test
+		Test.startTest();
+		Exception expectedException = null;
+
+		try {
+			new DML()
+				.toInsert(newAccount)
+				.toInsert(DML.Record(newContact).withRelationship(Contact.AccountId, Account.Name, 'Test'))
+				.commitWork();
+		} catch (Exception e) {
+			expectedException = e;
+		}
+		Test.stopTest();
+
+		// Verify
+		Assert.isNotNull(expectedException, 'Expected exception to be thrown.');
+		Assert.areEqual('Invalid argument: externalIdField. Field supplied is not a marked as an External Identifier.', expectedException.getMessage(), 'Expected exception message should be thrown.');
+	}
 
 	@IsTest
 	static void toInsertMultipleRecords() {
@@ -92,11 +167,95 @@ private class DML_Test {
 		Test.stopTest();
 
 		// Verify
-		Assert.areEqual(1, [SELECT COUNT() FROM Account], 'Account should be related to Contact.');
-		Assert.areEqual(2, [SELECT COUNT() FROM Contact], 'Contact should be related to Account.');
+		Assert.areEqual(1, [SELECT COUNT() FROM Account], 'Account should be inserted.');
+		Assert.areEqual(2, [SELECT COUNT() FROM Contact], 'Contacts should be inserted.');
 
 		Assert.areEqual(newAccount.Id, newContact.AccountId, 'Contact should be related to Account.');
 		Assert.areEqual(newAccount.Id, newContact2.AccountId, 'Contact 2 should be related to Account.');
+	}
+
+	@IsTest
+	static void toInsertWithInvalidTargetRelationshipFieldMultipleRecords() {
+		// Setup
+		Account newAccount = getAccount(1);
+		Contact newContact = getContact(1);
+		Contact newContact2 = getContact(2);
+
+		List<Contact> contacts = new List<Contact>{ newContact, newContact2 };
+
+		// Test
+		Test.startTest();
+			Exception expectedException = null;
+
+			try {
+				new DML()
+					.toInsert(newAccount)
+					.toInsert(DML.Records(contacts).withRelationship(Contact.LastName, newAccount))
+					.commitWork();
+			} catch (Exception e) {
+				expectedException = e;
+			}
+		Test.stopTest();
+
+		// Verify
+		Assert.isNotNull(expectedException, 'Expected exception to be thrown.');
+		Assert.areEqual('Invalid argument: relationshipField. Field supplied is not a relationship field.', expectedException.getMessage(), 'Expected exception message should be thrown.');
+	}
+
+	@IsTest
+	static void toInsertWithInvalidExternalRelationshipMultipleRecords() {
+		// Setup
+		Account newAccount = getAccount(1);
+		Contact newContact = getContact(1);
+		Contact newContact2 = getContact(2);
+
+		List<Contact> contacts = new List<Contact>{ newContact, newContact2 };
+
+		// Test
+		Test.startTest();
+		Exception expectedException = null;
+
+		try {
+			new DML()
+				.toInsert(newAccount)
+				.toInsert(DML.Records(contacts).withRelationship(Contact.LastName, Account.Name, 'Test'))
+				.commitWork();
+		} catch (Exception e) {
+			expectedException = e;
+		}
+		Test.stopTest();
+
+		// Verify
+		Assert.isNotNull(expectedException, 'Expected exception to be thrown.');
+		Assert.areEqual('Invalid argument: relationshipField. Field supplied is not a relationship field.', expectedException.getMessage(), 'Expected exception message should be thrown.');
+	}
+
+	@IsTest
+	static void toInsertWithInvalidExternalIdFieldMultipleRecords() {
+		// Setup
+		Account newAccount = getAccount(1);
+		Contact newContact = getContact(1);
+		Contact newContact2 = getContact(2);
+
+		List<Contact> contacts = new List<Contact>{ newContact, newContact2 };
+
+		// Test
+		Test.startTest();
+		Exception expectedException = null;
+
+		try {
+			new DML()
+				.toInsert(newAccount)
+				.toInsert(DML.Records(contacts).withRelationship(Contact.AccountId, Account.Name, 'Test'))
+				.commitWork();
+		} catch (Exception e) {
+			expectedException = e;
+		}
+		Test.stopTest();
+
+		// Verify
+		Assert.isNotNull(expectedException, 'Expected exception to be thrown.');
+		Assert.areEqual('Invalid argument: externalIdField. Field supplied is not a marked as an External Identifier.', expectedException.getMessage(), 'Expected exception message should be thrown.');
 	}
 
 	@IsTest
@@ -303,8 +462,8 @@ private class DML_Test {
 		Test.stopTest();
 
 		// Verify
-		Assert.areEqual(1, [SELECT COUNT() FROM Account], 'Account should be updated.');
-		Assert.areEqual(1, [SELECT COUNT() FROM Contact], 'Contact should be related to Account.');
+		Assert.areEqual(1, [SELECT COUNT() FROM Account], 'Account should be inserted.');
+		Assert.areEqual(1, [SELECT COUNT() FROM Contact], 'Contact should be updated.');
 
 		List<Contact> contacts = [SELECT Id, AccountId FROM Contact WHERE Id = :newContact.Id];
 
@@ -356,8 +515,8 @@ private class DML_Test {
 		Test.stopTest();
 
 		// Verify
-		Assert.areEqual(2, [SELECT COUNT() FROM Contact], 'Contact should be related to Account.');
-		Assert.areEqual(1, [SELECT COUNT() FROM Account], 'Account should be related to Contact.');
+		Assert.areEqual(2, [SELECT COUNT() FROM Contact], 'Contacts should be updated.');
+		Assert.areEqual(1, [SELECT COUNT() FROM Account], 'Account should be inserted.');
 
 		List<Contact> contacts = [SELECT Id, AccountId FROM Contact WHERE Id IN :contactsToCreate];
 
@@ -470,7 +629,7 @@ private class DML_Test {
 		Test.stopTest();
 
 		// Verify
-		Assert.areEqual(2, [SELECT COUNT() FROM Account WHERE Name IN ('Test Account 1', 'Test Account 1 New Name')], 'Accounts should be updated.');
+		Assert.areEqual(2, [SELECT COUNT() FROM Account WHERE Name IN ('Test Account 1', 'Test Account 1 New Name')], 'Accounts should be present with expected names after partial success update.');
 	}
 
 	@IsTest
@@ -548,16 +707,16 @@ private class DML_Test {
 		Test.stopTest();
 
 		// Verify
-		Assert.areEqual(1, [SELECT COUNT() FROM Case], 'Case should be inserted.');
-		Assert.isNotNull(newCase.Id, 'Case should be inserted and have an Id.');
+		Assert.areEqual(1, [SELECT COUNT() FROM Case], 'Case should be updated.');
+		Assert.isNotNull(newCase.Id, 'Case should be updated and have an Id.');
 	}
 
 
 	@IsTest
 	static void toUpdateWithSystemModeAndWithSharing() {
 		// Setup
-		Case newCase = getCase(1);
-		insert newCase;
+		Contact newContact = getContact(1);
+		insert newContact;
 
 		Exception expectedException = null;
 
@@ -565,11 +724,11 @@ private class DML_Test {
 		Test.startTest();
 		System.runAs(minimumAccessUser()) {
 			try {
-				newCase.Subject = 'Updated Test Case';
+				newContact.FirstName = 'Updated Test Contact';
 				new DML()
-					.toUpdate(newCase)
-					.withSharing()
+					.toUpdate(newContact)
 					.systemMode()
+					.withSharing()
 					.commitWork();
 			} catch (Exception e) {
 				expectedException = e;
@@ -689,7 +848,7 @@ private class DML_Test {
 		Test.stopTest();
 		
 		// Verify
-		Assert.areEqual(2, [SELECT COUNT() FROM Account], 'Account 2 should be created.');
+		Assert.areEqual(2, [SELECT COUNT() FROM Account], 'Both accounts should be upserted.');
 
 		Assert.areEqual('Updated Test Account 1', account1.Name, 'Account 1 should be updated.');
 		Assert.isNotNull(account2.Id, 'Account 2 should be inserted and have an Id.');
@@ -758,7 +917,7 @@ private class DML_Test {
 		Test.stopTest();
 
 		// Verify
-		Assert.areEqual(3, [SELECT COUNT() FROM Account WHERE Name IN ('Test Account 1', 'Test Account 1 New Name', 'Test Account 3')], 'Accounts should be updated.');
+		Assert.areEqual(3, [SELECT COUNT() FROM Account WHERE Name IN ('Test Account 1', 'Test Account 1 New Name', 'Test Account 3')], 'Accounts should be upserted with expected names.');
 	}
 
 	@IsTest
@@ -847,18 +1006,19 @@ private class DML_Test {
 		Test.stopTest();
 
 		// Verify
-		Assert.areEqual(2, [SELECT COUNT() FROM Case], 'Cases should be inserted.');
-		Assert.isNotNull(newCase1.Id, 'Case 1 should be inserted and have an Id.');
-		Assert.isNotNull(newCase2.Id, 'Case 2 should be inserted and have an Id.');
+		Assert.areEqual(2, [SELECT COUNT() FROM Case], 'Cases should be upserted.');
+
+		Assert.isNotNull(newCase1.Id, 'Case 1 should be upserted and have an Id.');
+		Assert.isNotNull(newCase2.Id, 'Case 2 should be upserted and have an Id.');
 	}
 
 	@IsTest
 	static void toUpsertWithSystemModeAndWithSharing() {
 		// Setup
-		Case newCase1 = getCase(1);
-		Case newCase2 = getCase(2);
+		Contact newContact1 = getContact(1);
+		Contact newContact2 = getContact(2);
 
-		insert newCase1;
+		insert newContact1;
 
 		Exception expectedException = null;
 
@@ -866,10 +1026,10 @@ private class DML_Test {
 		Test.startTest();
 		System.runAs(minimumAccessUser()) {
 			try {
-				newCase1.Subject = 'Updated Test Case';
+				newContact1.FirstName = 'Updated Test Contact';
 				new DML()
-					.toUpsert(newCase1)
-					.toUpsert(newCase2)
+					.toUpsert(newContact1)
+					.toUpsert(newContact2)
 					.withSharing()
 					.systemMode()
 					.commitWork();
@@ -1115,7 +1275,7 @@ private class DML_Test {
 		Test.stopTest();
 
 		// Verify
-		Assert.areEqual(0, [SELECT COUNT() FROM Case], 'Cases should be not be deleted, because user has no access to the case.');
+		Assert.areEqual(0, [SELECT COUNT() FROM Case], 'Case should be deleted with system mode and without sharing.');
 		Assert.isNull(expectedException, 'No exception should be thrown.');
 	}
 
@@ -1323,22 +1483,23 @@ private class DML_Test {
 
 		// Test
 		Test.startTest();
-			System.runAs(minimumAccessUser()) {
-				try {
-					new DML()
-						.toUndelete(newCase)
-						.systemMode()
-						.withSharing()
-						.commitWork();
-				} catch (Exception e) {
-					expectedException = e;
-				}
+		System.runAs(minimumAccessUser()) {
+			try {
+				new DML()
+					.toUndelete(newCase)
+					.systemMode()
+					.withSharing()
+					.commitWork();
+			} catch (Exception e) {
+				expectedException = e;
 			}
+		}
 		Test.stopTest();
 
 		// Verify
-		Assert.areEqual(0, [SELECT COUNT() FROM Case], 'Cases should be not be undeleted, because user has no access to the case.');
+		Assert.areEqual(0, [SELECT COUNT() FROM Case], 'Case should not be undeleted, because user has no access with sharing mode.');
 		Assert.isNotNull(expectedException, 'Expected exception to be thrown.');
+		Assert.isTrue(expectedException.getMessage().contains('insufficient access rights on object id'), 'Expected exception message should be thrown.');
 	}
 
 	// PLATFORM EVENT
@@ -1531,6 +1692,25 @@ private class DML_Test {
 		Assert.areEqual('New Test Description', accounts[1].Description, 'Account description should be "New Test Description".');
 	}
 
+	// SHARED
+
+	@IsTest
+	static void sharedDmlInstance() {
+		Account account = getAccount(1);
+
+		Test.startTest();
+		Integer dmlStatementsBefore = Limits.getDMLStatements();
+
+		DML.Shared.toInsert(account).commitWork();
+		DML.Shared.commitWork();
+
+		Integer dmlStatementsAfter = Limits.getDMLStatements();
+		Test.stopTest();
+
+		Assert.areEqual(1, [SELECT COUNT() FROM Account], 'Account should be inserted.');
+		Assert.areEqual(1, dmlStatementsAfter - dmlStatementsBefore, 'DML statements should be 1, because second commitWork() should not do anything.');
+	}
+
 	// COMPLEX
 
 	@IsTest
@@ -1676,7 +1856,7 @@ private class DML_Test {
 			LocaleSidKey = 'en_US',
 			Profile = new Profile(Name = 'Minimum Access - Salesforce'),
 			TimeZoneSidKey = 'America/Los_Angeles',
-			UserName = 'queryselector@testorg.com'
+			UserName = 'btcdmllibuser@testorg.com'
 		);
 	}
 }

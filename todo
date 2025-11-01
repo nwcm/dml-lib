@@ -41,6 +41,14 @@ dml.withRetryPolicy(new RetryPolicy()
     - [ ] DML Counter — total DML statements and rows processed; expose via results.
     - [ ] Mock Errors - mock different DML errors.
     - [ ] Update/Upsert should update record reference
+```java
+    DML.mock('mockId').mockAll();
+    DML.mock('mockId').mockInsert();
+    DML.mock('mockId').mockUpdate();
+
+    DML.get('mockId').getInserted(Account.SObjectType);
+    DML.get('mockId').getUpdated(Account.SObjectType);
+```
 - [ ] Supported Operations:
     - [ ] insert
     - [ ] update
@@ -61,6 +69,10 @@ dml.withRetryPolicy(new RetryPolicy()
 - [ ] Chunk Size — protect against DML row/CPU limits. uow.withChunkSize(200) (default 200) to mimic trigger batch sizes and reduce recursion; auto-downshift on retries if enabled.
 - [ ] Rich result model (optional) — include outcomes, limits, stripped fields, warnings, event results, and retry trace; provide toJson() for logging.
 ```java
+DML.SaveResult {
+    // copy Database.SaveResult
+}
+
 class DmlOutcome {
   public SObjectType type;
   public Operation op;                 // INSERT/UPDATE/UPSERT/DELETE/UNDELETE/HARDDELETE/MERGE/EVENT
