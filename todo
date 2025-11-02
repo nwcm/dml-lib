@@ -1,7 +1,7 @@
 - [ ] Database.DmlOptions options to pass 
     — [x] support a global default (uow.options(opts)) 
     - [ ] support per-operation override (.withOptions(perOpOpts))
-- [ ] Fluent Bulk records update without the loop e.g.
+- [x] Fluent Bulk records update without the loop e.g.
     - [x] DML.Records(opportunities).with(Opportunity.Status, 'Closed Won') — loop-free builder that batches field patches, applies FLS (per mode), then registers the op.
 - [ ] Bulk DMLs — group by SObjectType and operation; execute in chunked batches (default 200) to minimize statements and respect limits.
 - [ ] Savepoint + rollback — wrap commitWork() in a savepoint; 
@@ -15,7 +15,6 @@
     - [x] USER_MODE — enforce CRUD/FLS strictly; fail on violations with clear errors.
     - [x] SYSTEM_MODE — skip CRUD/FLS checks (still subject to validation rules)
     - [ ] stripInaccessible (?) — SANITIZE mode: apply Security.stripInaccessible(CREATABLE/UPDATABLE, records); record stripped fields in results.
-    - [ ] Unit Tests
 - [ ] Configurable Sharing Mode
     - [x] Inherited sharing by default — keep DML.cls as inherited sharing
     - [x] with sharing
@@ -50,11 +49,11 @@ dml.withRetryPolicy(new RetryPolicy()
     DML.get('mockId').getUpdated(Account.SObjectType);
 ```
 - [ ] Supported Operations:
-    - [ ] insert
-    - [ ] update
-    - [ ] upsert
-    - [ ] delete
-    - [ ] undelete
+    - [x] insert
+    - [x] update
+    - [x] upsert
+    - [x] delete
+    - [x] undelete
     - [ ] harddelete (soft delete + emptyRecycleBin)
     - [ ] merge (surface MergeResult[])
     - [ ] publish event (__e queued and published during commit; include outcomes)
