@@ -19,8 +19,6 @@
 
 # Getting Started
 
-The SOQL Lib provides functional constructs for SOQL queries in Apex.
-
 The DML Lib provides functional constructs for DML statements in Apex.
 
 For more details, please refer to the [documentation](https://dml.beyondthecloud.dev).
