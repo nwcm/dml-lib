@@ -2,8 +2,8 @@
  * Copyright (c) 2025 Beyond The Cloud Sp. z o.o. (BeyondTheCloud.Dev)
  * Licensed under the MIT License (https://github.com/beyond-the-cloud-dev/dml-lib/blob/main/LICENSE)
  *
- * v1.3.0
- * 
+ * v1.5.0
+ *
  * PMD False Positives:
  * - CyclomaticComplexity: It is a library and we tried to put everything into ONE class
  * - CognitiveComplexity: It is a library and we tried to put everything into ONE class
@@ -17,19 +17,44 @@ private class DML_Test {
 	@IsTest
 	static void toInsertSingleRecord() {
 		// Setup
-		Account account = getAccount(1);
+		Account account1 = getAccount(1);
 
 		// Test
 		Test.startTest();
-			new DML()
-				.toInsert(account)
+			DML.Result result = new DML()
+				.toInsert(account1)
 				.commitWork();
 		Test.stopTest();
 
 		// Verify
 		Assert.areEqual(1, [SELECT COUNT() FROM Account], 'Single record should be inserted.');
 
-		Assert.isNotNull(account.Id, 'Account should be inserted and have an Id.');
+		Assert.isNotNull(account1.Id, 'Account should be inserted and have an Id.');
+	
+		Assert.areEqual(1, result.inserted().size(), 'Inserted operation result should contain 1 result.');
+		Assert.areEqual(0, result.upserted().size(), 'Upserted operation result should contain 0 results.');
+		Assert.areEqual(0, result.updated().size(), 'Updated operation result should contain 0 results.');
+		Assert.areEqual(0, result.deleted().size(), 'Deleted operation result should contain 0 results.');
+		Assert.areEqual(0, result.undeleted().size(), 'Undeleted operation result should contain 0 results.');
+		Assert.areEqual(0, result.published().size(), 'Published operation result should contain 0 results.');
+
+		Assert.areEqual(1, result.inserted(Account.SObjectType).requestedCount(), 'Inserted operation result should contain 1 record.');
+		Assert.areEqual(0, result.upserted(Account.SObjectType).requestedCount(), 'Upserted operation result should contain 0 records.');
+		Assert.areEqual(0, result.updated(Account.SObjectType).requestedCount(), 'Updated operation result should contain 0 records.');
+		Assert.areEqual(0, result.deleted(Account.SObjectType).requestedCount(), 'Deleted operation result should contain 0 records.');
+		Assert.areEqual(0, result.undeleted(Account.SObjectType).requestedCount(), 'Undeleted operation result should contain 0 records.');
+		Assert.areEqual(0, result.published(Account.SObjectType).requestedCount(), 'Published operation result should contain 0 records.');
+
+		DML.OperationResult operationResult = result.inserted(Account.SObjectType);
+
+		Assert.areEqual(1, operationResult.succeededCount(), 'Inserted operation result should contain 1 succeeded record.');
+		Assert.areEqual(0, operationResult.failedCount(), 'Inserted operation result should contain 0 failed record.');
+		Assert.areEqual(1, operationResult.requestedCount(), 'Inserted operation result should contain 1 record.');
+		Assert.areEqual(1, operationResult.records().size(), 'Inserted operation result should contain the inserted record.');
+		Assert.areEqual(1, operationResult.getRecordResults().size(), 'Inserted operation result should contain the inserted record result.');
+		Assert.areEqual(Account.SObjectType, operationResult.getObjectType(), 'Inserted operation result should contain Account object type.');
+		Assert.areEqual(DML.Type.INSERT_DML, operationResult.getType(), 'Inserted operation result should contain insert type.');
+		Assert.isFalse(operationResult.hasFailures(), 'Inserted operation result should not have failures.');
 	}
 
 	@IsTest
@@ -51,7 +76,7 @@ private class DML_Test {
 		Assert.areEqual(1, [SELECT COUNT() FROM Contact], 'Contact should be inserted.');
 
 		Assert.areEqual(newAccount.Id, newContact.AccountId, 'Contact should be related to Account.');
-	}
+	}       
 
 	@IsTest
 	static void toInsertWithInvalidRelationshipSingleRecord() {
@@ -64,7 +89,7 @@ private class DML_Test {
 			Exception expectedException = null;
 
 			try {
-				new DML()
+			new DML()
 					.toInsert(newAccount)
 					.toInsert(DML.Record(newContact).withRelationship(Contact.LastName, newAccount))
 					.commitWork();
@@ -136,7 +161,7 @@ private class DML_Test {
 
 		// Test
 		Test.startTest();
-			new DML()
+			DML.Result result = new DML()
 				.toInsert(account1)
 				.toInsert(account2)
 				.commitWork();
@@ -147,16 +172,36 @@ private class DML_Test {
 		
 		Assert.isNotNull(account1.Id, 'Account 1 should be inserted and have an Id.');
 		Assert.isNotNull(account2.Id, 'Account 2 should be inserted and have an Id.');
+
+		Assert.areEqual(1, result.inserted().size(), 'Inserted operation result should contain 2 results.');
+		Assert.areEqual(0, result.upserted().size(), 'Upserted operation result should contain 0 results.');
+		Assert.areEqual(0, result.updated().size(), 'Updated operation result should contain 0 results.');
+		Assert.areEqual(0, result.deleted().size(), 'Deleted operation result should contain 0 results.');
+		Assert.areEqual(0, result.undeleted().size(), 'Undeleted operation result should contain 0 results.');
+		Assert.areEqual(0, result.published().size(), 'Published operation result should contain 0 results.');
+
+		Assert.areEqual(2, result.inserted(Account.SObjectType).requestedCount(), 'Inserted operation result should contain 2 Account records.');
+
+		DML.OperationResult operationResult = result.inserted(Account.SObjectType);
+
+		Assert.areEqual(2, operationResult.succeededCount(), 'Inserted operation result should contain 2 succeeded records.');
+		Assert.areEqual(0, operationResult.failedCount(), 'Inserted operation result should contain 0 failed record.');
+		Assert.areEqual(2, operationResult.requestedCount(), 'Inserted operation result should contain 2 records.');
+		Assert.areEqual(2, operationResult.records().size(), 'Inserted operation result should contain the inserted records.');
+		Assert.areEqual(2, operationResult.getRecordResults().size(), 'Inserted operation result should contain the inserted record results.');
+		Assert.areEqual(Account.SObjectType, operationResult.getObjectType(), 'Inserted operation result should contain Account object type.');
+		Assert.areEqual(DML.Type.INSERT_DML, operationResult.getType(), 'Inserted operation result should contain insert type.');
+		Assert.isFalse(operationResult.hasFailures(), 'Inserted operation result should not have failures.');
 	}
 
 	@IsTest
 	static void toInsertWithRelationshipMultipleRecords() {
 		// Setup
 		Account newAccount = getAccount(1);
-		Contact newContact = getContact(1);
+		Contact newContact1 = getContact(1);
 		Contact newContact2 = getContact(2);
 
-		List<Contact> contacts = new List<Contact>{ newContact, newContact2 };
+		List<Contact> contacts = new List<Contact>{ newContact1, newContact2 };
 
 		// Test
 		Test.startTest();
@@ -170,7 +215,7 @@ private class DML_Test {
 		Assert.areEqual(1, [SELECT COUNT() FROM Account], 'Account should be inserted.');
 		Assert.areEqual(2, [SELECT COUNT() FROM Contact], 'Contacts should be inserted.');
 
-		Assert.areEqual(newAccount.Id, newContact.AccountId, 'Contact should be related to Account.');
+		Assert.areEqual(newAccount.Id, newContact1.AccountId, 'Contact should be related to Account.');
 		Assert.areEqual(newAccount.Id, newContact2.AccountId, 'Contact 2 should be related to Account.');
 	}
 
@@ -178,20 +223,20 @@ private class DML_Test {
 	static void toInsertWithInvalidTargetRelationshipFieldMultipleRecords() {
 		// Setup
 		Account newAccount = getAccount(1);
-		Contact newContact = getContact(1);
+		Contact newContact1 = getContact(1);
 		Contact newContact2 = getContact(2);
 
-		List<Contact> contacts = new List<Contact>{ newContact, newContact2 };
+		List<Contact> contacts = new List<Contact>{ newContact1, newContact2 };
 
 		// Test
 		Test.startTest();
 			Exception expectedException = null;
 
 			try {
-				new DML()
+			new DML()
 					.toInsert(newAccount)
 					.toInsert(DML.Records(contacts).withRelationship(Contact.LastName, newAccount))
-					.commitWork();
+				.commitWork();
 			} catch (Exception e) {
 				expectedException = e;
 			}
@@ -206,10 +251,10 @@ private class DML_Test {
 	static void toInsertWithInvalidExternalRelationshipMultipleRecords() {
 		// Setup
 		Account newAccount = getAccount(1);
-		Contact newContact = getContact(1);
+		Contact newContact1 = getContact(1);
 		Contact newContact2 = getContact(2);
 
-		List<Contact> contacts = new List<Contact>{ newContact, newContact2 };
+		List<Contact> contacts = new List<Contact>{ newContact1, newContact2 };
 
 		// Test
 		Test.startTest();
@@ -234,10 +279,10 @@ private class DML_Test {
 	static void toInsertWithInvalidExternalIdFieldMultipleRecords() {
 		// Setup
 		Account newAccount = getAccount(1);
-		Contact newContact = getContact(1);
+		Contact newContact1 = getContact(1);
 		Contact newContact2 = getContact(2);
 
-		List<Contact> contacts = new List<Contact>{ newContact, newContact2 };
+		List<Contact> contacts = new List<Contact>{ newContact1, newContact2 };
 
 		// Test
 		Test.startTest();
@@ -261,16 +306,16 @@ private class DML_Test {
 	@IsTest
 	static void toInsertMultipleRecordsTypes() {
 		// Setup
-		Account account = getAccount(1);
-		Opportunity opportunity = getOpportunity(1);
-		Lead lead = getLead(1);
+		Account account1 = getAccount(1);
+		Opportunity opportunityToInsert = getOpportunity(1);
+		Lead leadToInsert = getLead(1);
 
 		// Test
 		Test.startTest();
-			new DML()
-				.toInsert(account)
-				.toInsert(opportunity)
-				.toInsert(lead)
+			DML.Result result = new DML()
+				.toInsert(account1)
+				.toInsert(opportunityToInsert)
+				.toInsert(leadToInsert)
 				.commitWork();
 		Test.stopTest();
 
@@ -279,9 +324,53 @@ private class DML_Test {
 		Assert.areEqual(1, [SELECT COUNT() FROM Opportunity], 'Opportunity should be inserted.');
 		Assert.areEqual(1, [SELECT COUNT() FROM Lead], 'Lead should be inserted.');
 
-		Assert.isNotNull(account.Id, 'Account should be inserted and have an Id.');
-		Assert.isNotNull(opportunity.Id, 'Opportunity should be inserted and have an Id.');
-		Assert.isNotNull(lead.Id, 'Lead should be inserted and have an Id.');
+		Assert.isNotNull(account1.Id, 'Account should be inserted and have an Id.');
+		Assert.isNotNull(opportunityToInsert.Id, 'Opportunity should be inserted and have an Id.');
+		Assert.isNotNull(leadToInsert.Id, 'Lead should be inserted and have an Id.');
+
+		Assert.areEqual(3, result.inserted().size(), 'Inserted operation result should contain 3 results.');
+		Assert.areEqual(0, result.upserted().size(), 'Upserted operation result should contain 0 results.');
+		Assert.areEqual(0, result.updated().size(), 'Updated operation result should contain 0 results.');
+		Assert.areEqual(0, result.deleted().size(), 'Deleted operation result should contain 0 results.');
+		Assert.areEqual(0, result.undeleted().size(), 'Undeleted operation result should contain 0 results.');
+		Assert.areEqual(0, result.published().size(), 'Published operation result should contain 0 results.');
+
+		Assert.areEqual(1, result.inserted(Account.SObjectType).requestedCount(), 'Inserted operation result should contain 1 Account record.');
+		Assert.areEqual(1, result.inserted(Opportunity.SObjectType).requestedCount(), 'Inserted operation result should contain 1 Opportunity record.');
+		Assert.areEqual(1, result.inserted(Lead.SObjectType).requestedCount(), 'Inserted operation result should contain 1 Lead record.');
+
+		DML.OperationResult accountOperationResult = result.inserted(Account.SObjectType);
+
+		Assert.areEqual(1, accountOperationResult.succeededCount(), 'Inserted operation result should contain 1 succeeded record.');
+		Assert.areEqual(0, accountOperationResult.failedCount(), 'Inserted operation result should contain 0 failed record.');
+		Assert.areEqual(1, accountOperationResult.requestedCount(), 'Inserted operation result should contain 1 record.');
+		Assert.areEqual(1, accountOperationResult.records().size(), 'Inserted operation result should contain the inserted record.');
+		Assert.areEqual(1, accountOperationResult.getRecordResults().size(), 'Inserted operation result should contain the inserted record results.');
+		Assert.areEqual(Account.SObjectType, accountOperationResult.getObjectType(), 'Inserted operation result should contain Account object type.');
+		Assert.areEqual(DML.Type.INSERT_DML, accountOperationResult.getType(), 'Inserted operation result should contain insert type.');
+		Assert.isFalse(accountOperationResult.hasFailures(), 'Inserted operation result should not have failures.');
+
+		DML.OperationResult opportunityOperationResult = result.inserted(Opportunity.SObjectType);
+
+		Assert.areEqual(1, opportunityOperationResult.succeededCount(), 'Inserted operation result should contain 1 succeeded record.');
+		Assert.areEqual(0, opportunityOperationResult.failedCount(), 'Inserted operation result should contain 0 failed record.');
+		Assert.areEqual(1, opportunityOperationResult.requestedCount(), 'Inserted operation result should contain 1 record.');
+		Assert.areEqual(1, opportunityOperationResult.records().size(), 'Inserted operation result should contain the inserted record.');
+		Assert.areEqual(1, opportunityOperationResult.getRecordResults().size(), 'Inserted operation result should contain the inserted record results.');
+		Assert.areEqual(Opportunity.SObjectType, opportunityOperationResult.getObjectType(), 'Inserted operation result should contain Opportunity object type.');
+		Assert.areEqual(DML.Type.INSERT_DML, opportunityOperationResult.getType(), 'Inserted operation result should contain insert type.');
+		Assert.isFalse(opportunityOperationResult.hasFailures(), 'Inserted operation result should not have failures.');
+
+		DML.OperationResult leadOperationResult = result.inserted(Lead.SObjectType);
+
+		Assert.areEqual(1, leadOperationResult.succeededCount(), 'Inserted operation result should contain 1 succeeded record.');
+		Assert.areEqual(0, leadOperationResult.failedCount(), 'Inserted operation result should contain 0 failed record.');
+		Assert.areEqual(1, leadOperationResult.requestedCount(), 'Inserted operation result should contain 1 record.');
+		Assert.areEqual(1, leadOperationResult.records().size(), 'Inserted operation result should contain the inserted record.');
+		Assert.areEqual(1, leadOperationResult.getRecordResults().size(), 'Inserted operation result should contain the inserted record results.');
+		Assert.areEqual(Lead.SObjectType, leadOperationResult.getObjectType(), 'Inserted operation result should contain Lead object type.');
+		Assert.areEqual(DML.Type.INSERT_DML, leadOperationResult.getType(), 'Inserted operation result should contain insert type.');
+		Assert.isFalse(leadOperationResult.hasFailures(), 'Inserted operation result should not have failures.');
 	}
 
 	@IsTest
@@ -386,7 +475,7 @@ private class DML_Test {
 
 		// Test
 		Test.startTest();
-		System.runAs(minimumAccessUser()) {
+			System.runAs(minimumAccessUser()) {
 			try {
 				new DML()
 					.toInsert(newCase)
@@ -395,7 +484,7 @@ private class DML_Test {
 			} catch (Exception e) {
 				expectedException = e;
 			}
-		}
+			}
 		Test.stopTest();
 
 		// Verify
@@ -410,12 +499,12 @@ private class DML_Test {
 
 		// Test
 		Test.startTest();
-			System.runAs(minimumAccessUser()) {
+		System.runAs(minimumAccessUser()) {
 				new DML()
 					.toInsert(newCase)
 					.systemMode()
 					.commitWork();
-			}
+		}
 		Test.stopTest();
 
 		// Verify
@@ -428,22 +517,47 @@ private class DML_Test {
 	@IsTest
 	static void toUpdateSingleRecord() {
 		// Setup
-		Account account = getAccount(1);
-		insert account;
+		Account account1 = getAccount(1);
+		insert account1;
 
 		// Test
 		Test.startTest();
-			account.Name = 'Updated Test Account';
+			account1.Name = 'Updated Test Account';
 
-			new DML()
-				.toUpdate(account)
+			DML.Result result = new DML()
+				.toUpdate(account1)
 				.commitWork();
 		Test.stopTest();
 
 		// Verify
 		Assert.areEqual(1, [SELECT COUNT() FROM Account], 'Account should be updated.');
 
-		Assert.areEqual('Updated Test Account', account.Name, 'Account should be updated.');
+		Assert.areEqual('Updated Test Account', account1.Name, 'Account should be updated.');
+			
+		Assert.areEqual(0, result.inserted().size(), 'Inserted operation result should contain 0 results.');
+		Assert.areEqual(0, result.upserted().size(), 'Upserted operation result should contain 0 results.');
+		Assert.areEqual(1, result.updated().size(), 'Updated operation result should contain 1 result.');
+		Assert.areEqual(0, result.deleted().size(), 'Deleted operation result should contain 0 results.');
+		Assert.areEqual(0, result.undeleted().size(), 'Undeleted operation result should contain 0 results.');
+		Assert.areEqual(0, result.published().size(), 'Published operation result should contain 0 results.');
+
+		Assert.areEqual(0, result.inserted(Account.SObjectType).requestedCount(), 'Inserted operation result should contain 1 record.');
+		Assert.areEqual(0, result.upserted(Account.SObjectType).requestedCount(), 'Upserted operation result should contain 0 records.');
+		Assert.areEqual(1, result.updated(Account.SObjectType).requestedCount(), 'Updated operation result should contain 0 records.');
+		Assert.areEqual(0, result.deleted(Account.SObjectType).requestedCount(), 'Deleted operation result should contain 0 records.');
+		Assert.areEqual(0, result.undeleted(Account.SObjectType).requestedCount(), 'Undeleted operation result should contain 0 records.');
+		Assert.areEqual(0, result.published(Account.SObjectType).requestedCount(), 'Published operation result should contain 0 records.');
+
+		DML.OperationResult operationResult = result.updated(Account.SObjectType);
+
+		Assert.areEqual(1, operationResult.succeededCount(), 'Updated operation result should contain 1 succeeded record.');
+		Assert.areEqual(0, operationResult.failedCount(), 'Updated operation result should contain 0 failed record.');
+		Assert.areEqual(1, operationResult.requestedCount(), 'Updated operation result should contain 1 record.');
+		Assert.areEqual(1, operationResult.records().size(), 'Updated operation result should contain the updated record.');
+		Assert.areEqual(1, operationResult.getRecordResults().size(), 'Updated operation result should contain the updated record result.');
+		Assert.areEqual(Account.SObjectType, operationResult.getObjectType(), 'Updated operation result should contain Account object type.');
+		Assert.areEqual(DML.Type.UPDATE_DML, operationResult.getType(), 'Updated operation result should contain update type.');
+		Assert.isFalse(operationResult.hasFailures(), 'Updated operation result should not have failures.');
 	}
 
 	@IsTest
@@ -480,10 +594,10 @@ private class DML_Test {
 
 		// Test
 		Test.startTest();
-			account1.Name = 'Updated Test Account 1';
-			account2.Name = 'Updated Test Account 2';
+		account1.Name = 'Updated Test Account 1';
+		account2.Name = 'Updated Test Account 2';
 
-			new DML()
+			DML.Result result = new DML()
 				.toUpdate(account1)
 				.toUpdate(account2)
 				.commitWork();
@@ -494,6 +608,26 @@ private class DML_Test {
 
 		Assert.areEqual('Updated Test Account 1', account1.Name, 'Account 1 should be updated.');
 		Assert.areEqual('Updated Test Account 2', account2.Name, 'Account 2 should be updated.');
+
+		Assert.areEqual(0, result.inserted().size(), 'Inserted operation result should contain 0 results.');
+		Assert.areEqual(0, result.upserted().size(), 'Upserted operation result should contain 0 results.');
+		Assert.areEqual(1, result.updated().size(), 'Updated operation result should contain 1 result.');
+		Assert.areEqual(0, result.deleted().size(), 'Deleted operation result should contain 0 results.');
+		Assert.areEqual(0, result.undeleted().size(), 'Undeleted operation result should contain 0 results.');
+		Assert.areEqual(0, result.published().size(), 'Published operation result should contain 0 results.');
+
+		Assert.areEqual(2, result.updated(Account.SObjectType).requestedCount(), 'Updated operation result should contain 2 Account records.');
+
+		DML.OperationResult operationResult = result.updated(Account.SObjectType);
+
+		Assert.areEqual(2, operationResult.succeededCount(), 'Updated operation result should contain 2 succeeded records.');
+		Assert.areEqual(0, operationResult.failedCount(), 'Updated operation result should contain 0 failed record.');
+		Assert.areEqual(2, operationResult.requestedCount(), 'Updated operation result should contain 2 records.');
+		Assert.areEqual(2, operationResult.records().size(), 'Updated operation result should contain the updated records.');
+		Assert.areEqual(2, operationResult.getRecordResults().size(), 'Updated operation result should contain the updated record results.');
+		Assert.areEqual(Account.SObjectType, operationResult.getObjectType(), 'Updated operation result should contain Account object type.');
+		Assert.areEqual(DML.Type.UPDATE_DML, operationResult.getType(), 'Updated operation result should contain update type.');
+		Assert.isFalse(operationResult.hasFailures(), 'Updated operation result should not have failures.');
 	}
 
 	@IsTest
@@ -527,22 +661,22 @@ private class DML_Test {
 	@IsTest
 	static void toUpdateMultipleRecordsTypes() {
 		// Setup
-		Account account = getAccount(1);
-		Opportunity opportunity = getOpportunity(1);
-		Lead lead = getLead(1);
+		Account account1 = getAccount(1);
+		Opportunity opportunity1 = getOpportunity(1);
+		Lead lead1 = getLead(1);
 
-		insert new List<SObject>{ account, opportunity, lead };
+		insert new List<SObject>{ account1, opportunity1, lead1 };
 
 		// Test
 		Test.startTest();
-			account.Name = 'Updated Test Account';
-			opportunity.Name = 'Updated Test Opportunity';
-			lead.FirstName = 'Updated Test';
+			account1.Name = 'Updated Test Account';
+			opportunity1.Name = 'Updated Test Opportunity';
+			lead1.FirstName = 'Updated Test';
 
-			new DML()
-				.toUpdate(account)
-				.toUpdate(opportunity)
-				.toUpdate(lead)
+			DML.Result result = new DML()
+				.toUpdate(account1)
+				.toUpdate(opportunity1)
+				.toUpdate(lead1)
 				.commitWork();
 		Test.stopTest();   
 
@@ -551,9 +685,53 @@ private class DML_Test {
 		Assert.areEqual(1, [SELECT COUNT() FROM Opportunity], 'Opportunity should be updated.');
 		Assert.areEqual(1, [SELECT COUNT() FROM Lead], 'Lead should be updated.');
 
-		Assert.areEqual('Updated Test Account', account.Name, 'Account should be updated.');
-		Assert.areEqual('Updated Test Opportunity', opportunity.Name, 'Opportunity should be updated.');
-		Assert.areEqual('Updated Test', lead.FirstName, 'Lead should be updated.');
+		Assert.areEqual('Updated Test Account', account1.Name, 'Account should be updated.');
+		Assert.areEqual('Updated Test Opportunity', opportunity1.Name, 'Opportunity should be updated.');
+		Assert.areEqual('Updated Test', lead1.FirstName, 'Lead should be updated.');
+
+		Assert.areEqual(0, result.inserted().size(), 'Inserted operation result should contain 0 results.');
+		Assert.areEqual(0, result.upserted().size(), 'Upserted operation result should contain 0 results.');
+		Assert.areEqual(3, result.updated().size(), 'Updated operation result should contain 3 results.');
+		Assert.areEqual(0, result.deleted().size(), 'Deleted operation result should contain 0 results.');
+		Assert.areEqual(0, result.undeleted().size(), 'Undeleted operation result should contain 0 results.');
+		Assert.areEqual(0, result.published().size(), 'Published operation result should contain 0 results.');
+
+		Assert.areEqual(1, result.updated(Account.SObjectType).requestedCount(), 'Updated operation result should contain 1 Account record.');
+		Assert.areEqual(1, result.updated(Opportunity.SObjectType).requestedCount(), 'Updated operation result should contain 1 Opportunity record.');
+		Assert.areEqual(1, result.updated(Lead.SObjectType).requestedCount(), 'Updated operation result should contain 1 Lead record.');
+
+		DML.OperationResult accountOperationResult = result.updated(Account.SObjectType);
+
+		Assert.areEqual(1, accountOperationResult.succeededCount(), 'Updated operation result should contain 1 succeeded record.');
+		Assert.areEqual(0, accountOperationResult.failedCount(), 'Updated operation result should contain 0 failed record.');
+		Assert.areEqual(1, accountOperationResult.requestedCount(), 'Updated operation result should contain 1 record.');
+		Assert.areEqual(1, accountOperationResult.records().size(), 'Updated operation result should contain the updated record.');
+		Assert.areEqual(1, accountOperationResult.getRecordResults().size(), 'Updated operation result should contain the updated record results.');
+		Assert.areEqual(Account.SObjectType, accountOperationResult.getObjectType(), 'Updated operation result should contain Account object type.');
+		Assert.areEqual(DML.Type.UPDATE_DML, accountOperationResult.getType(), 'Updated operation result should contain update type.');
+		Assert.isFalse(accountOperationResult.hasFailures(), 'Updated operation result should not have failures.');
+
+		DML.OperationResult opportunityOperationResult = result.updated(Opportunity.SObjectType);
+
+		Assert.areEqual(1, opportunityOperationResult.succeededCount(), 'Updated operation result should contain 1 succeeded record.');
+		Assert.areEqual(0, opportunityOperationResult.failedCount(), 'Updated operation result should contain 0 failed record.');
+		Assert.areEqual(1, opportunityOperationResult.requestedCount(), 'Updated operation result should contain 1 record.');
+		Assert.areEqual(1, opportunityOperationResult.records().size(), 'Updated operation result should contain the updated record.');
+		Assert.areEqual(1, opportunityOperationResult.getRecordResults().size(), 'Updated operation result should contain the updated record results.');
+		Assert.areEqual(Opportunity.SObjectType, opportunityOperationResult.getObjectType(), 'Updated operation result should contain Opportunity object type.');
+		Assert.areEqual(DML.Type.UPDATE_DML, opportunityOperationResult.getType(), 'Updated operation result should contain update type.');
+		Assert.isFalse(opportunityOperationResult.hasFailures(), 'Updated operation result should not have failures.');
+
+		DML.OperationResult leadOperationResult = result.updated(Lead.SObjectType);
+
+		Assert.areEqual(1, leadOperationResult.succeededCount(), 'Updated operation result should contain 1 succeeded record.');
+		Assert.areEqual(0, leadOperationResult.failedCount(), 'Updated operation result should contain 0 failed record.');
+		Assert.areEqual(1, leadOperationResult.requestedCount(), 'Updated operation result should contain 1 record.');
+		Assert.areEqual(1, leadOperationResult.records().size(), 'Updated operation result should contain the updated record.');
+		Assert.areEqual(1, leadOperationResult.getRecordResults().size(), 'Updated operation result should contain the inserted record results.');
+		Assert.areEqual(Lead.SObjectType, leadOperationResult.getObjectType(), 'Updated operation result should contain Lead object type.');
+		Assert.areEqual(DML.Type.UPDATE_DML, leadOperationResult.getType(), 'Updated operation result should contain update type.');
+		Assert.isFalse(leadOperationResult.hasFailures(), 'Updated operation result should not have failures.');
 	}
 
 	@IsTest
@@ -568,9 +746,9 @@ private class DML_Test {
 
 		// Test
 		Test.startTest();
-			accounts[0].Name = 'Updated Test Account 1';
-			accounts[1].Name = 'Updated Test Account 2';
-			accounts[2].Name = 'Updated Test Account 3';
+		accounts[0].Name = 'Updated Test Account 1';
+		accounts[1].Name = 'Updated Test Account 2';
+		accounts[2].Name = 'Updated Test Account 3';
 
 			new DML()
 				.toUpdate(accounts)
@@ -672,7 +850,7 @@ private class DML_Test {
 		System.runAs(minimumAccessUser()) {
 			try {
 				newCase.Subject = 'Updated Test Case';
-				new DML()
+			new DML()
 					.toUpdate(newCase)
 					.userMode()
 					.commitWork();
@@ -746,40 +924,90 @@ private class DML_Test {
 	@IsTest
 	static void toUpsertSingleExistingRecord() {
 		// Setup
-		Account account = getAccount(1);
-		insert account;
+		Account account1 = getAccount(1);
+		insert account1;
 
 		// Test
 		Test.startTest();
-			account.Name = 'Updated Test Account';
+			account1.Name = 'Updated Test Account';
 
-			new DML()
-				.toUpsert(account)
+			DML.Result result = new DML()
+				.toUpsert(account1)
 				.commitWork();
 		Test.stopTest();
 
 		// Verify
 		Assert.areEqual(1, [SELECT COUNT() FROM Account], 'Account should be updated.');
 
-		Assert.areEqual('Updated Test Account', account.Name, 'Account should be updated.');
+		Assert.areEqual('Updated Test Account', account1.Name, 'Account should be updated.');
+
+		Assert.areEqual(0, result.inserted().size(), 'Inserted operation result should contain 0 results.');
+		Assert.areEqual(1, result.upserted().size(), 'Upserted operation result should contain 1 result.');
+		Assert.areEqual(0, result.updated().size(), 'Updated operation result should contain 0 results.');
+		Assert.areEqual(0, result.deleted().size(), 'Deleted operation result should contain 0 results.');
+		Assert.areEqual(0, result.undeleted().size(), 'Undeleted operation result should contain 0 results.');
+		Assert.areEqual(0, result.published().size(), 'Published operation result should contain 0 results.');
+
+		Assert.areEqual(0, result.inserted(Account.SObjectType).requestedCount(), 'Inserted operation result should contain 0 records.');
+		Assert.areEqual(1, result.upserted(Account.SObjectType).requestedCount(), 'Upserted operation result should contain 1 record.');
+		Assert.areEqual(0, result.updated(Account.SObjectType).requestedCount(), 'Updated operation result should contain 0 records.');
+		Assert.areEqual(0, result.deleted(Account.SObjectType).requestedCount(), 'Deleted operation result should contain 0 records.');
+		Assert.areEqual(0, result.undeleted(Account.SObjectType).requestedCount(), 'Undeleted operation result should contain 0 records.');
+		Assert.areEqual(0, result.published(Account.SObjectType).requestedCount(), 'Published operation result should contain 0 records.');
+
+		DML.OperationResult operationResult = result.upserted(Account.SObjectType);
+
+		Assert.areEqual(1, operationResult.succeededCount(), 'Upserted operation result should contain 1 succeeded record.');
+		Assert.areEqual(0, operationResult.failedCount(), 'Upserted operation result should contain 0 failed record.');
+		Assert.areEqual(1, operationResult.requestedCount(), 'Upserted operation result should contain 1 record.');
+		Assert.areEqual(1, operationResult.records().size(), 'Upserted operation result should contain the upserted record.');
+		Assert.areEqual(1, operationResult.getRecordResults().size(), 'Upserted operation result should contain the upserted record result.');
+		Assert.areEqual(Account.SObjectType, operationResult.getObjectType(), 'Upserted operation result should contain Account object type.');
+		Assert.areEqual(DML.Type.UPSERT_DML, operationResult.getType(), 'Upserted operation result should contain upsert type.');
+		Assert.isFalse(operationResult.hasFailures(), 'Upserted operation result should not have failures.');
 	}
 
 	@IsTest
 	static void toUpsertSingleNewRecord() {
 		// Setup
-		Account account = getAccount(1);
+		Account account1 = getAccount(1);
 
 		// Test
 		Test.startTest();
-			new DML()
-				.toUpsert(account)
+			DML.Result result = new DML()
+				.toUpsert(account1)
 				.commitWork();
 		Test.stopTest();
 
 		// Verify
 		Assert.areEqual(1, [SELECT COUNT() FROM Account], 'Account should be inserted.');
 
-		Assert.isNotNull(account.Id, 'Account should be inserted and have an Id.');
+		Assert.isNotNull(account1.Id, 'Account should be inserted and have an Id.');
+
+		Assert.areEqual(0, result.inserted().size(), 'Inserted operation result should contain 0 results.');
+		Assert.areEqual(1, result.upserted().size(), 'Upserted operation result should contain 1 result.');
+		Assert.areEqual(0, result.updated().size(), 'Updated operation result should contain 0 results.');
+		Assert.areEqual(0, result.deleted().size(), 'Deleted operation result should contain 0 results.');
+		Assert.areEqual(0, result.undeleted().size(), 'Undeleted operation result should contain 0 results.');
+		Assert.areEqual(0, result.published().size(), 'Published operation result should contain 0 results.');
+
+		Assert.areEqual(0, result.inserted(Account.SObjectType).requestedCount(), 'Inserted operation result should contain 0 records.');
+		Assert.areEqual(1, result.upserted(Account.SObjectType).requestedCount(), 'Upserted operation result should contain 1 record.');
+		Assert.areEqual(0, result.updated(Account.SObjectType).requestedCount(), 'Updated operation result should contain 0 records.');
+		Assert.areEqual(0, result.deleted(Account.SObjectType).requestedCount(), 'Deleted operation result should contain 0 records.');
+		Assert.areEqual(0, result.undeleted(Account.SObjectType).requestedCount(), 'Undeleted operation result should contain 0 records.');
+		Assert.areEqual(0, result.published(Account.SObjectType).requestedCount(), 'Published operation result should contain 0 records.');
+
+		DML.OperationResult operationResult = result.upserted(Account.SObjectType);
+
+		Assert.areEqual(1, operationResult.succeededCount(), 'Upserted operation result should contain 1 succeeded record.');
+		Assert.areEqual(0, operationResult.failedCount(), 'Upserted operation result should contain 0 failed record.');
+		Assert.areEqual(1, operationResult.requestedCount(), 'Upserted operation result should contain 1 record.');
+		Assert.areEqual(1, operationResult.records().size(), 'Upserted operation result should contain the upserted record.');
+		Assert.areEqual(1, operationResult.getRecordResults().size(), 'Upserted operation result should contain the upserted record result.');
+		Assert.areEqual(Account.SObjectType, operationResult.getObjectType(), 'Upserted operation result should contain Account object type.');
+		Assert.areEqual(DML.Type.UPSERT_DML, operationResult.getType(), 'Upserted operation result should contain upsert type.');
+		Assert.isFalse(operationResult.hasFailures(), 'Upserted operation result should not have failures.');
 	}
 
 	@IsTest
@@ -792,8 +1020,8 @@ private class DML_Test {
 
 		// Test
 		Test.startTest();
-			account1.Name = 'Updated Test Account 1';
-			account2.Name = 'Updated Test Account 2';
+		account1.Name = 'Updated Test Account 1';
+		account2.Name = 'Updated Test Account 2';
 
 			new DML()
 				.toUpsert(account1)
@@ -836,7 +1064,7 @@ private class DML_Test {
 		Account account2 = getAccount(2);
 
 		insert account1;
-
+		
 		// Test
 		Test.startTest();
 			account1.Name = 'Updated Test Account 1';
@@ -866,11 +1094,11 @@ private class DML_Test {
 
 		// Test
 		Test.startTest();
-			existingAccounts[0].Name = 'Updated Test Account 1';
-			existingAccounts[1].Name = 'Updated Test Account 2';
-			existingAccounts[2].Name = 'Updated Test Account 3';
+		existingAccounts[0].Name = 'Updated Test Account 1';
+		existingAccounts[1].Name = 'Updated Test Account 2';
+		existingAccounts[2].Name = 'Updated Test Account 3';
 
-			List<Account> newAccounts = new List<Account>{
+		List<Account> newAccounts = new List<Account>{
 				getAccount(1),
 				getAccount(2),
 				getAccount(3)
@@ -902,14 +1130,14 @@ private class DML_Test {
 			getAccount(2)
 		};
 		insert accounts;
-		
+
 		// Test
 		Test.startTest();
 			accounts[0].Name = null; // Name will not change, because it's set to null
-			accounts[1].Name = 'Test Account 1 New Name';
+		accounts[1].Name = 'Test Account 1 New Name';
 
 			accounts.add(getAccount(3)); // New account
-
+		
 			new DML()
 				.toUpsert(accounts)
 				.allowPartialSuccess()
@@ -1065,17 +1293,42 @@ private class DML_Test {
 	@IsTest
 	static void toDeleteSingleRecord() {
 		// Setup
-		Account account = insertAccount();
+		Account account1 = insertAccount();
 		
 		// Test
 		Test.startTest();
-			new DML()
-				.toDelete(account)
+			DML.Result result = new DML()
+				.toDelete(account1)
 				.commitWork();
 		Test.stopTest();
 		
 		// Verify
 		Assert.areEqual(0, [SELECT COUNT() FROM Account], 'Account should be deleted.');
+
+		Assert.areEqual(0, result.inserted().size(), 'Inserted operation result should contain 0 results.');
+		Assert.areEqual(0, result.upserted().size(), 'Upserted operation result should contain 0 results.');
+		Assert.areEqual(0, result.updated().size(), 'Updated operation result should contain 0 results.');
+		Assert.areEqual(1, result.deleted().size(), 'Deleted operation result should contain 1 result.');
+		Assert.areEqual(0, result.undeleted().size(), 'Undeleted operation result should contain 0 results.');
+		Assert.areEqual(0, result.published().size(), 'Published operation result should contain 0 results.');
+
+		Assert.areEqual(0, result.inserted(Account.SObjectType).requestedCount(), 'Inserted operation result should contain 0 records.');
+		Assert.areEqual(0, result.upserted(Account.SObjectType).requestedCount(), 'Upserted operation result should contain 0 records.');
+		Assert.areEqual(0, result.updated(Account.SObjectType).requestedCount(), 'Updated operation result should contain 0 records.');
+		Assert.areEqual(1, result.deleted(Account.SObjectType).requestedCount(), 'Deleted operation result should contain 1 record.');
+		Assert.areEqual(0, result.undeleted(Account.SObjectType).requestedCount(), 'Undeleted operation result should contain 0 records.');
+		Assert.areEqual(0, result.published(Account.SObjectType).requestedCount(), 'Published operation result should contain 0 records.');
+
+		DML.OperationResult operationResult = result.deleted(Account.SObjectType);
+
+		Assert.areEqual(1, operationResult.succeededCount(), 'Deleted operation result should contain 1 succeeded record.');
+		Assert.areEqual(0, operationResult.failedCount(), 'Deleted operation result should contain 0 failed record.');
+		Assert.areEqual(1, operationResult.requestedCount(), 'Deleted operation result should contain 1 record.');
+		Assert.areEqual(1, operationResult.records().size(), 'Deleted operation result should contain the deleted record.');
+		Assert.areEqual(1, operationResult.getRecordResults().size(), 'Deleted operation result should contain the deleted record result.');
+		Assert.areEqual(Account.SObjectType, operationResult.getObjectType(), 'Deleted operation result should contain Account object type.');
+		Assert.areEqual(DML.Type.DELETE_DML, operationResult.getType(), 'Deleted operation result should contain delete type.');
+		Assert.isFalse(operationResult.hasFailures(), 'Deleted operation result should not have failures.');
 	}
 
 	@IsTest
@@ -1088,7 +1341,7 @@ private class DML_Test {
 		
 		// Test
 		Test.startTest();
-			new DML()
+			DML.Result result = new DML()
 				.toDelete(account1)
 				.toDelete(account2)
 				.commitWork();
@@ -1096,6 +1349,26 @@ private class DML_Test {
 
 		// Verify
 		Assert.areEqual(0, [SELECT COUNT() FROM Account], 'Accounts should be deleted.');
+
+		Assert.areEqual(0, result.inserted().size(), 'Inserted operation result should contain 0 results.');
+		Assert.areEqual(0, result.upserted().size(), 'Upserted operation result should contain 0 results.');
+		Assert.areEqual(0, result.updated().size(), 'Updated operation result should contain 0 results.');
+		Assert.areEqual(1, result.deleted().size(), 'Deleted operation result should contain 1 result.');
+		Assert.areEqual(0, result.undeleted().size(), 'Undeleted operation result should contain 0 results.');
+		Assert.areEqual(0, result.published().size(), 'Published operation result should contain 0 results.');
+
+		Assert.areEqual(2, result.deleted(Account.SObjectType).requestedCount(), 'Deleted operation result should contain 2 Account records.');
+
+		DML.OperationResult operationResult = result.deleted(Account.SObjectType);
+
+		Assert.areEqual(2, operationResult.succeededCount(), 'Deleted operation result should contain 2 succeeded records.');
+		Assert.areEqual(0, operationResult.failedCount(), 'Deleted operation result should contain 0 failed record.');
+		Assert.areEqual(2, operationResult.requestedCount(), 'Deleted operation result should contain 2 records.');
+		Assert.areEqual(2, operationResult.records().size(), 'Deleted operation result should contain the deleted records.');
+		Assert.areEqual(2, operationResult.getRecordResults().size(), 'Deleted operation result should contain the deleted record results.');
+		Assert.areEqual(Account.SObjectType, operationResult.getObjectType(), 'Deleted operation result should contain Account object type.');
+		Assert.areEqual(DML.Type.DELETE_DML, operationResult.getType(), 'Deleted operation result should contain delete type.');
+		Assert.isFalse(operationResult.hasFailures(), 'Deleted operation result should not have failures.');
 	}
 
 	@IsTest
@@ -1130,6 +1403,74 @@ private class DML_Test {
 
 		// Verify
 		Assert.areEqual(0, [SELECT COUNT() FROM Account], 'Accounts should be deleted.');
+	}
+
+	@IsTest
+	static void toDeleteMultipleRecordsTypes() {
+		// Setup
+		Account account1 = getAccount(1);
+		Opportunity opportunity1 = getOpportunity(1);
+		Lead lead1 = getLead(1);
+
+		insert new List<SObject>{ account1, opportunity1, lead1 };
+
+		// Test
+		Test.startTest();
+			DML.Result result = new DML()
+				.toDelete(account1)
+				.toDelete(opportunity1)
+				.toDelete(lead1)
+				.commitWork();
+		Test.stopTest();   
+
+		// Verify
+		Assert.areEqual(0, [SELECT COUNT() FROM Account], 'Account should be deleted.');
+		Assert.areEqual(0, [SELECT COUNT() FROM Opportunity], 'Opportunity should be deleted.');
+		Assert.areEqual(0, [SELECT COUNT() FROM Lead], 'Lead should be deleted.');
+
+		Assert.areEqual(0, result.inserted().size(), 'Inserted operation result should contain 0 results.');
+		Assert.areEqual(0, result.upserted().size(), 'Upserted operation result should contain 0 results.');
+		Assert.areEqual(0, result.updated().size(), 'Updated operation result should contain 0 results.');
+		Assert.areEqual(3, result.deleted().size(), 'Deleted operation result should contain 3 results.');
+		Assert.areEqual(0, result.undeleted().size(), 'Undeleted operation result should contain 0 results.');
+		Assert.areEqual(0, result.published().size(), 'Published operation result should contain 0 results.');
+
+		Assert.areEqual(1, result.deleted(Account.SObjectType).requestedCount(), 'Deleted operation result should contain 1 Account record.');
+		Assert.areEqual(1, result.deleted(Opportunity.SObjectType).requestedCount(), 'Deleted operation result should contain 1 Opportunity record.');
+		Assert.areEqual(1, result.deleted(Lead.SObjectType).requestedCount(), 'Deleted operation result should contain 1 Lead record.');
+
+		DML.OperationResult accountOperationResult = result.deleted(Account.SObjectType);
+
+		Assert.areEqual(1, accountOperationResult.succeededCount(), 'Deleted operation result should contain 1 succeeded record.');
+		Assert.areEqual(0, accountOperationResult.failedCount(), 'Deleted operation result should contain 0 failed record.');
+		Assert.areEqual(1, accountOperationResult.requestedCount(), 'Deleted operation result should contain 1 record.');
+		Assert.areEqual(1, accountOperationResult.records().size(), 'Deleted operation result should contain the deleted record.');
+		Assert.areEqual(1, accountOperationResult.getRecordResults().size(), 'Deleted operation result should contain the deleted record results.');
+		Assert.areEqual(Account.SObjectType, accountOperationResult.getObjectType(), 'Deleted operation result should contain Account object type.');
+		Assert.areEqual(DML.Type.DELETE_DML, accountOperationResult.getType(), 'Deleted operation result should contain delete type.');
+		Assert.isFalse(accountOperationResult.hasFailures(), 'Deleted operation result should not have failures.');
+
+		DML.OperationResult opportunityOperationResult = result.deleted(Opportunity.SObjectType);
+
+		Assert.areEqual(1, opportunityOperationResult.succeededCount(), 'Deleted operation result should contain 1 succeeded record.');
+		Assert.areEqual(0, opportunityOperationResult.failedCount(), 'Deleted operation result should contain 0 failed record.');
+		Assert.areEqual(1, opportunityOperationResult.requestedCount(), 'Deleted operation result should contain 1 record.');
+		Assert.areEqual(1, opportunityOperationResult.records().size(), 'Deleted operation result should contain the deleted record.');
+		Assert.areEqual(1, opportunityOperationResult.getRecordResults().size(), 'Deleted operation result should contain the deleted record results.');
+		Assert.areEqual(Opportunity.SObjectType, opportunityOperationResult.getObjectType(), 'Deleted operation result should contain Opportunity object type.');
+		Assert.areEqual(DML.Type.DELETE_DML, opportunityOperationResult.getType(), 'Deleted operation result should contain delete type.');
+		Assert.isFalse(opportunityOperationResult.hasFailures(), 'Deleted operation result should not have failures.');
+
+		DML.OperationResult leadOperationResult = result.deleted(Lead.SObjectType);
+
+		Assert.areEqual(1, leadOperationResult.succeededCount(), 'Deleted operation result should contain 1 succeeded record.');
+		Assert.areEqual(0, leadOperationResult.failedCount(), 'Deleted operation result should contain 0 failed record.');
+		Assert.areEqual(1, leadOperationResult.requestedCount(), 'Deleted operation result should contain 1 record.');
+		Assert.areEqual(1, leadOperationResult.records().size(), 'Deleted operation result should contain the deleted record.');
+		Assert.areEqual(1, leadOperationResult.getRecordResults().size(), 'Deleted operation result should contain the deleted record results.');
+		Assert.areEqual(Lead.SObjectType, leadOperationResult.getObjectType(), 'Deleted operation result should contain Lead object type.');
+		Assert.areEqual(DML.Type.DELETE_DML, leadOperationResult.getType(), 'Deleted operation result should contain delete type.');
+		Assert.isFalse(leadOperationResult.hasFailures(), 'Deleted operation result should not have failures.');
 	}
 
 	@IsTest
@@ -1303,20 +1644,45 @@ private class DML_Test {
 	@IsTest
 	static void toUndeleteSingleRecord() {
 		// Setup
-		Account account = insertAccount();
-		delete account;
+		Account account1 = insertAccount();
+		delete account1;
 
 		Assert.areEqual(0, [SELECT COUNT() FROM Account], 'Account should be deleted.');
 
 		// Test
 		Test.startTest();
-			new DML()
-				.toUndelete(account)
+			DML.Result result = new DML()
+				.toUndelete(account1)
 				.commitWork();
 		Test.stopTest();
 		
 		// Verify
 		Assert.areEqual(1, [SELECT COUNT() FROM Account], 'Account should be undeleted.');
+
+		Assert.areEqual(0, result.inserted().size(), 'Inserted operation result should contain 0 results.');
+		Assert.areEqual(0, result.upserted().size(), 'Upserted operation result should contain 0 results.');
+		Assert.areEqual(0, result.updated().size(), 'Updated operation result should contain 0 results.');
+		Assert.areEqual(0, result.deleted().size(), 'Deleted operation result should contain 0 results.');
+		Assert.areEqual(1, result.undeleted().size(), 'Undeleted operation result should contain 1 result.');
+		Assert.areEqual(0, result.published().size(), 'Published operation result should contain 0 results.');
+
+		Assert.areEqual(0, result.inserted(Account.SObjectType).requestedCount(), 'Inserted operation result should contain 0 records.');
+		Assert.areEqual(0, result.upserted(Account.SObjectType).requestedCount(), 'Upserted operation result should contain 0 records.');
+		Assert.areEqual(0, result.updated(Account.SObjectType).requestedCount(), 'Updated operation result should contain 0 records.');
+		Assert.areEqual(0, result.deleted(Account.SObjectType).requestedCount(), 'Deleted operation result should contain 0 records.');
+		Assert.areEqual(1, result.undeleted(Account.SObjectType).requestedCount(), 'Undeleted operation result should contain 1 record.');
+		Assert.areEqual(0, result.published(Account.SObjectType).requestedCount(), 'Published operation result should contain 0 records.');
+
+		DML.OperationResult operationResult = result.undeleted(Account.SObjectType);
+
+		Assert.areEqual(1, operationResult.succeededCount(), 'Undeleted operation result should contain 1 succeeded record.');
+		Assert.areEqual(0, operationResult.failedCount(), 'Undeleted operation result should contain 0 failed record.');
+		Assert.areEqual(1, operationResult.requestedCount(), 'Undeleted operation result should contain 1 record.');
+		Assert.areEqual(1, operationResult.records().size(), 'Undeleted operation result should contain the undeleted record.');
+		Assert.areEqual(1, operationResult.getRecordResults().size(), 'Undeleted operation result should contain the undeleted record result.');
+		Assert.areEqual(Account.SObjectType, operationResult.getObjectType(), 'Undeleted operation result should contain Account object type.');
+		Assert.areEqual(DML.Type.UNDELETE_DML, operationResult.getType(), 'Undeleted operation result should contain undelete type.');
+		Assert.isFalse(operationResult.hasFailures(), 'Undeleted operation result should not have failures.');
 	}
 
 	@IsTest
@@ -1350,13 +1716,102 @@ private class DML_Test {
 
 		// Test
 		Test.startTest();
-			new DML()
+			DML.Result result = new DML()
 				.toUndelete(accounts)
 				.commitWork();
 		Test.stopTest();
 		
 		// Verify
 		Assert.areEqual(accounts.size(), [SELECT COUNT() FROM Account], 'Accounts should be undeleted.');
+
+		Assert.areEqual(0, result.inserted().size(), 'Inserted operation result should contain 0 results.');
+		Assert.areEqual(0, result.upserted().size(), 'Upserted operation result should contain 0 results.');
+		Assert.areEqual(0, result.updated().size(), 'Updated operation result should contain 0 results.');
+		Assert.areEqual(0, result.deleted().size(), 'Deleted operation result should contain 0 results.');
+		Assert.areEqual(1, result.undeleted().size(), 'Undeleted operation result should contain 1 result.');
+		Assert.areEqual(0, result.published().size(), 'Published operation result should contain 0 results.');
+
+		Assert.areEqual(3, result.undeleted(Account.SObjectType).requestedCount(), 'Undeleted operation result should contain 3 Account records.');
+
+		DML.OperationResult operationResult = result.undeleted(Account.SObjectType);
+
+		Assert.areEqual(3, operationResult.succeededCount(), 'Undeleted operation result should contain 3 succeeded records.');
+		Assert.areEqual(0, operationResult.failedCount(), 'Undeleted operation result should contain 0 failed record.');
+		Assert.areEqual(3, operationResult.requestedCount(), 'Undeleted operation result should contain 3 records.');
+		Assert.areEqual(3, operationResult.records().size(), 'Undeleted operation result should contain the undeleted records.');
+		Assert.areEqual(3, operationResult.getRecordResults().size(), 'Undeleted operation result should contain the undeleted record results.');
+		Assert.areEqual(Account.SObjectType, operationResult.getObjectType(), 'Undeleted operation result should contain Account object type.');
+		Assert.areEqual(DML.Type.UNDELETE_DML, operationResult.getType(), 'Undeleted operation result should contain undelete type.');
+		Assert.isFalse(operationResult.hasFailures(), 'Undeleted operation result should not have failures.');
+	}
+
+	@IsTest
+	static void toUndeleteMultipleRecordsTypes() {
+		// Setup
+		Account account1 = getAccount(1);
+		Opportunity opportunity1 = getOpportunity(1);
+		Lead lead1 = getLead(1);
+
+		insert new List<SObject>{ account1, opportunity1, lead1 };
+		delete new List<SObject>{ account1, opportunity1, lead1 };
+
+		// Test
+		Test.startTest();
+			DML.Result result = new DML()
+				.toUndelete(account1)
+				.toUndelete(opportunity1)
+				.toUndelete(lead1)
+				.commitWork();
+		Test.stopTest();   
+
+		// Verify
+		Assert.areEqual(1, [SELECT COUNT() FROM Account], 'Account should be undeleted.');
+		Assert.areEqual(1, [SELECT COUNT() FROM Opportunity], 'Opportunity should be undeleted.');
+		Assert.areEqual(1, [SELECT COUNT() FROM Lead], 'Lead should be undeleted.');
+
+		Assert.areEqual(0, result.inserted().size(), 'Inserted operation result should contain 0 results.');
+		Assert.areEqual(0, result.upserted().size(), 'Upserted operation result should contain 0 results.');
+		Assert.areEqual(0, result.updated().size(), 'Updated operation result should contain 0 results.');
+		Assert.areEqual(0, result.deleted().size(), 'Deleted operation result should contain 0 results.');
+		Assert.areEqual(3, result.undeleted().size(), 'Undeleted operation result should contain 3 results.');
+		Assert.areEqual(0, result.published().size(), 'Published operation result should contain 0 results.');
+
+		Assert.areEqual(1, result.undeleted(Account.SObjectType).requestedCount(), 'Undeleted operation result should contain 1 Account record.');
+		Assert.areEqual(1, result.undeleted(Opportunity.SObjectType).requestedCount(), 'Undeleted operation result should contain 1 Opportunity record.');
+		Assert.areEqual(1, result.undeleted(Lead.SObjectType).requestedCount(), 'Undeleted operation result should contain 1 Lead record.');
+
+		DML.OperationResult accountOperationResult = result.undeleted(Account.SObjectType);
+
+		Assert.areEqual(1, accountOperationResult.succeededCount(), 'Undeleted operation result should contain 1 succeeded record.');
+		Assert.areEqual(0, accountOperationResult.failedCount(), 'Undeleted operation result should contain 0 failed record.');
+		Assert.areEqual(1, accountOperationResult.requestedCount(), 'Undeleted operation result should contain 1 record.');
+		Assert.areEqual(1, accountOperationResult.records().size(), 'Undeleted operation result should contain the undeleted record.');
+		Assert.areEqual(1, accountOperationResult.getRecordResults().size(), 'Undeleted operation result should contain the undeleted record results.');
+		Assert.areEqual(Account.SObjectType, accountOperationResult.getObjectType(), 'Undeleted operation result should contain Account object type.');
+		Assert.areEqual(DML.Type.UNDELETE_DML, accountOperationResult.getType(), 'Undeleted operation result should contain undelete type.');
+		Assert.isFalse(accountOperationResult.hasFailures(), 'Undeleted operation result should not have failures.');
+
+		DML.OperationResult opportunityOperationResult = result.undeleted(Opportunity.SObjectType);
+
+		Assert.areEqual(1, opportunityOperationResult.succeededCount(), 'Undeleted operation result should contain 1 succeeded record.');
+		Assert.areEqual(0, opportunityOperationResult.failedCount(), 'Undeleted operation result should contain 0 failed record.');
+		Assert.areEqual(1, opportunityOperationResult.requestedCount(), 'Undeleted operation result should contain 1 record.');
+		Assert.areEqual(1, opportunityOperationResult.records().size(), 'Undeleted operation result should contain the undeleted record.');
+		Assert.areEqual(1, opportunityOperationResult.getRecordResults().size(), 'Undeleted operation result should contain the undeleted record results.');
+		Assert.areEqual(Opportunity.SObjectType, opportunityOperationResult.getObjectType(), 'Undeleted operation result should contain Opportunity object type.');
+		Assert.areEqual(DML.Type.UNDELETE_DML, opportunityOperationResult.getType(), 'Undeleted operation result should contain undelete type.');
+		Assert.isFalse(opportunityOperationResult.hasFailures(), 'Undeleted operation result should not have failures.');
+
+		DML.OperationResult leadOperationResult = result.undeleted(Lead.SObjectType);
+
+		Assert.areEqual(1, leadOperationResult.succeededCount(), 'Undeleted operation result should contain 1 succeeded record.');
+		Assert.areEqual(0, leadOperationResult.failedCount(), 'Undeleted operation result should contain 0 failed record.');
+		Assert.areEqual(1, leadOperationResult.requestedCount(), 'Undeleted operation result should contain 1 record.');
+		Assert.areEqual(1, leadOperationResult.records().size(), 'Undeleted operation result should contain the undeleted record.');
+		Assert.areEqual(1, leadOperationResult.getRecordResults().size(), 'Undeleted operation result should contain the undeleted record results.');
+		Assert.areEqual(Lead.SObjectType, leadOperationResult.getObjectType(), 'Undeleted operation result should contain Lead object type.');
+		Assert.areEqual(DML.Type.UNDELETE_DML, leadOperationResult.getType(), 'Undeleted operation result should contain undelete type.');
+		Assert.isFalse(leadOperationResult.hasFailures(), 'Undeleted operation result should not have failures.');
 	}
 
 	@IsTest
@@ -1513,8 +1968,9 @@ private class DML_Test {
 
 		// Test
 		Test.startTest();
+			DML.Result result = null;
 			try {
-				new DML()
+				result = new DML()
 					.toPublish(event)
 					.commitWork();
 			} catch (Exception e) {
@@ -1524,6 +1980,31 @@ private class DML_Test {
 
 		// Verify
 		Assert.isNull(expectedException, 'Expected exception should not be thrown.');
+
+		Assert.areEqual(0, result.inserted().size(), 'Inserted operation result should contain 0 results.');
+		Assert.areEqual(0, result.upserted().size(), 'Upserted operation result should contain 0 results.');
+		Assert.areEqual(0, result.updated().size(), 'Updated operation result should contain 0 results.');
+		Assert.areEqual(0, result.deleted().size(), 'Deleted operation result should contain 0 results.');
+		Assert.areEqual(0, result.undeleted().size(), 'Undeleted operation result should contain 0 results.');
+		Assert.areEqual(1, result.published().size(), 'Published operation result should contain 1 result.');
+
+		Assert.areEqual(0, result.inserted(FlowOrchestrationEvent.SObjectType).requestedCount(), 'Inserted operation result should contain 0 records.');
+		Assert.areEqual(0, result.upserted(FlowOrchestrationEvent.SObjectType).requestedCount(), 'Upserted operation result should contain 0 records.');
+		Assert.areEqual(0, result.updated(FlowOrchestrationEvent.SObjectType).requestedCount(), 'Updated operation result should contain 0 records.');
+		Assert.areEqual(0, result.deleted(FlowOrchestrationEvent.SObjectType).requestedCount(), 'Deleted operation result should contain 0 records.');
+		Assert.areEqual(0, result.undeleted(FlowOrchestrationEvent.SObjectType).requestedCount(), 'Undeleted operation result should contain 0 records.');
+		Assert.areEqual(1, result.published(FlowOrchestrationEvent.SObjectType).requestedCount(), 'Published operation result should contain 1 record.');
+
+		DML.OperationResult operationResult = result.published(FlowOrchestrationEvent.SObjectType);
+
+		Assert.areEqual(0, operationResult.succeededCount(), 'Published operation result should contain 0 succeeded record.');
+		Assert.areEqual(1, operationResult.failedCount(), 'Published operation result should contain 0 failed record.');
+		Assert.areEqual(1, operationResult.requestedCount(), 'Published operation result should contain 1 record.');
+		Assert.areEqual(1, operationResult.records().size(), 'Published operation result should contain the published record.');
+		Assert.areEqual(1, operationResult.getRecordResults().size(), 'Published operation result should contain the published record result.');
+		Assert.areEqual(FlowOrchestrationEvent.SObjectType, operationResult.getObjectType(), 'Published operation result should contain FlowOrchestrationEvent object type.');
+		Assert.areEqual(DML.Type.PUBLISH_DML, operationResult.getType(), 'Published operation result should contain publish type.');
+		Assert.isTrue(operationResult.hasFailures(), 'Published operation result should have failures.');
 	}
 
 	@IsTest
@@ -1538,8 +2019,9 @@ private class DML_Test {
 		
 		// Test
 		Test.startTest();
+			DML.Result result = null;
 			try {
-				new DML()
+				result = new DML()
 					.toPublish(events)
 					.commitWork();
 			} catch (Exception e) {
@@ -1549,6 +2031,26 @@ private class DML_Test {
 
 		// Verify
 		Assert.isNull(expectedException, 'Expected exception should not be thrown.');
+
+		Assert.areEqual(0, result.inserted().size(), 'Inserted operation result should contain 0 results.');
+		Assert.areEqual(0, result.upserted().size(), 'Upserted operation result should contain 0 results.');
+		Assert.areEqual(0, result.updated().size(), 'Updated operation result should contain 0 results.');
+		Assert.areEqual(0, result.deleted().size(), 'Deleted operation result should contain 0 results.');
+		Assert.areEqual(0, result.undeleted().size(), 'Undeleted operation result should contain 0 results.');
+		Assert.areEqual(1, result.published().size(), 'Published operation result should contain 1 result.');
+
+		Assert.areEqual(2, result.published(FlowOrchestrationEvent.SObjectType).requestedCount(), 'Published operation result should contain 2 FlowOrchestrationEvent records.');
+
+		DML.OperationResult operationResult = result.published(FlowOrchestrationEvent.SObjectType);
+
+		Assert.areEqual(0, operationResult.succeededCount(), 'Published operation result should contain 2 succeeded records.');
+		Assert.areEqual(2, operationResult.failedCount(), 'Published operation result should contain 0 failed record.');
+		Assert.areEqual(2, operationResult.requestedCount(), 'Published operation result should contain 2 records.');
+		Assert.areEqual(2, operationResult.records().size(), 'Published operation result should contain the published records.');
+		Assert.areEqual(2, operationResult.getRecordResults().size(), 'Published operation result should contain the published record results.');
+		Assert.areEqual(FlowOrchestrationEvent.SObjectType, operationResult.getObjectType(), 'Published operation result should contain FlowOrchestrationEvent object type.');
+		Assert.areEqual(DML.Type.PUBLISH_DML, operationResult.getType(), 'Published operation result should contain publish type.');
+		Assert.isTrue(operationResult.hasFailures(), 'Published operation result should have failures.');
 	}
 
 	// DEBUG
@@ -1586,9 +2088,9 @@ private class DML_Test {
 	@IsTest
 	static void executionOrder() {
 		// Setup
-        Account newAccount = getAccount(1);
+		Account newAccount = getAccount(1);
 		Contact newContact = getContact(1);
-        Opportunity newOpportunity = getOpportunity(1);
+		Opportunity newOpportunity = getOpportunity(1);
 
 		// Test
 		Test.startTest();
@@ -1608,7 +2110,7 @@ private class DML_Test {
 	@IsTest
 	static void executionOrderWhenOneOfObjectsIsNotRegistered() {
 		// Setup
-        Account newAccount = getAccount(1);
+		Account newAccount = getAccount(1);
 		Contact newContact = getContact(1);
 
 		// Test
@@ -1628,7 +2130,7 @@ private class DML_Test {
 	@IsTest
 	static void executionOrderWhenOneOfObjectsIsRegisteredButNotInTheOrder() {
 		// Setup
-        Account newAccount = getAccount(1);
+		Account newAccount = getAccount(1);
 		Contact newContact = getContact(1);
 		Opportunity newOpportunity = getOpportunity(1);
 
@@ -1954,7 +2456,7 @@ private class DML_Test {
 	static Task getTask(Integer index) {
 		return new Task(Subject = 'Test ' + index, Type = 'Other');
 	}
-	
+
 	static Account insertAccount() {
 		Account account = new Account(Name = 'Test Account');
 		insert account;
