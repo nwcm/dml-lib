@@ -66,7 +66,7 @@ dml.withRetryPolicy(new RetryPolicy()
 - [ ] 100% code coverage — tests for happy/error paths, CRUD/FLS modes, DmlOptions, chunking, lock-retry, preview, hooks, mocking registries, and relationship ordering.
 - [ ] Trigger bypass adapter(optional) — new apex class DML.Bypass interface that will get sobjectType and based on it can have logic to bypass different triggers
 - [ ] Chunk Size — protect against DML row/CPU limits. uow.withChunkSize(200) (default 200) to mimic trigger batch sizes and reduce recursion; auto-downshift on retries if enabled.
-- [ ] Rich result model (optional) — include outcomes, limits, stripped fields, warnings, event results, and retry trace; provide toJson() for logging.
+- [x] Rich result model (optional) — include outcomes, limits, stripped fields, warnings, event results, and retry trace; provide toJson() for logging.
 ```java
 DML.SaveResult {
     // copy Database.SaveResult

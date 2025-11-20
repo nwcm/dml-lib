@@ -138,6 +138,7 @@ public inherited sharing class DML implements Commitable {
 
 	public interface RecordResult {
 		Id getId();
+		// SObject getRecord(); TODO
 		Boolean isSuccess();
 		List<Error> getErrors();
 	}
@@ -147,6 +148,29 @@ public inherited sharing class DML implements Commitable {
 		System.StatusCode getStatusCode();
 		List<String> getFields();
 	}
+
+	// Mockking
+
+	public static Mockable mock(String mockId) {
+		return DML.mockIdToMock.get(mockId);
+	}
+
+	public static Result mockResult(String mockId) {
+		return null;
+	}
+
+	public interface Mockable {
+		Mockable thenMockAll();
+		// Per Operation
+		Mockable thenMockInsert();
+		Mockable thenMockUpdate();
+		Mockable thenMockUpsert();
+		Mockable thenMockDelete();
+		Mockable thenMockUndelete();
+		Mockable thenMockPublish();
+	}
+
+	// Hooks
 
 	public interface Hook {
 		void before();
@@ -165,6 +189,7 @@ public inherited sharing class DML implements Commitable {
 	public enum Type { INSERT_DML, UPDATE_DML, UPSERT_DML, DELETE_DML, UNDELETE_DML, HARD_DELETE_DML, MERGE_DML, PUBLISH_DML }
 
 	private DML.Hook hook = null;
+	private static Map<String, Mockable> mockIdToMock = new Map<String, Mockable>();
 
 	public DML() {} // default constructor
 
@@ -477,27 +502,27 @@ public inherited sharing class DML implements Commitable {
 		}
 
 		public OperationResult inserted(SObjectType objectType) {
-			return this.operationResultsByObjectType.get(Type.INSERT_DML).get(objectType) ?? new OperationSummary(objectType, Type.INSERT_DML);
+			return this.getOperationResult(Type.INSERT_DML, objectType) ?? new OperationSummary(objectType, Type.INSERT_DML);
 		}
 
 		public OperationResult updated(SObjectType objectType) {
-			return this.operationResultsByObjectType.get(Type.UPDATE_DML).get(objectType) ?? new OperationSummary(objectType, Type.UPDATE_DML);
+			return this.getOperationResult(Type.UPDATE_DML, objectType) ?? new OperationSummary(objectType, Type.UPDATE_DML);
 		}
 
 		public OperationResult upserted(SObjectType objectType) {
-			return this.operationResultsByObjectType.get(Type.UPSERT_DML).get(objectType) ?? new OperationSummary(objectType, Type.UPSERT_DML);
+			return this.getOperationResult(Type.UPSERT_DML, objectType) ?? new OperationSummary(objectType, Type.UPSERT_DML);
 		}
 
 		public OperationResult deleted(SObjectType objectType) {
-			return this.operationResultsByObjectType.get(Type.DELETE_DML).get(objectType) ?? new OperationSummary(objectType, Type.DELETE_DML);
+			return this.getOperationResult(Type.DELETE_DML, objectType) ?? new OperationSummary(objectType, Type.DELETE_DML);
 		}
 
 		public OperationResult undeleted(SObjectType objectType) {
-			return this.operationResultsByObjectType.get(Type.UNDELETE_DML).get(objectType) ?? new OperationSummary(objectType, Type.UNDELETE_DML);
+			return this.getOperationResult(Type.UNDELETE_DML, objectType) ?? new OperationSummary(objectType, Type.UNDELETE_DML);
 		}
 
 		public OperationResult published(SObjectType objectType) {
-			return this.operationResultsByObjectType.get(Type.PUBLISH_DML).get(objectType) ?? new OperationSummary(objectType, Type.PUBLISH_DML);
+			return this.getOperationResult(Type.PUBLISH_DML, objectType) ?? new OperationSummary(objectType, Type.PUBLISH_DML);
 		}
 
 		private List<OperationResult> getOperationResults(Type operationType) {
