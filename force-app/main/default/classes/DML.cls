@@ -2,7 +2,7 @@
  * Copyright (c) 2025 Beyond The Cloud Sp. z o.o. (BeyondTheCloud.Dev)
  * Licensed under the MIT License (https://github.com/beyond-the-cloud-dev/dml-lib/blob/main/LICENSE)
  *
- * v1.5.0
+ * v1.6.0
  *
  * PMD False Positives:
  * - MethodNamingConventions - Some methods are uppercase to indicate that they are "constructors" of othere internal classes
@@ -71,6 +71,36 @@ public inherited sharing class DML implements Commitable {
 		// Platform Event
 		Commitable toPublish(SObject record);
 		Commitable toPublish(List<SObject> records);
+		// Immediate Insert
+		OperationResult insertImmediately(SObject record);
+		OperationResult insertImmediately(DML.Record record);
+		OperationResult insertImmediately(List<SObject> records);
+		OperationResult insertImmediately(DML.Records records);
+		// Immediate Update
+		OperationResult updateImmediately(SObject record);
+		OperationResult updateImmediately(DML.Record record);
+		OperationResult updateImmediately(List<SObject> records);
+		OperationResult updateImmediately(DML.Records records);
+		// Immediate Upsert
+		OperationResult upsertImmediately(SObject record);
+		OperationResult upsertImmediately(DML.Record record);
+		OperationResult upsertImmediately(List<SObject> records);
+		OperationResult upsertImmediately(DML.Records records);
+		// Immediate Delete
+		OperationResult deleteImmediately(Id recordId);
+		OperationResult deleteImmediately(SObject record);
+		OperationResult deleteImmediately(Iterable<Id> recordIds);
+		OperationResult deleteImmediately(List<SObject> records);
+		// Immediate Undelete
+		OperationResult undeleteImmediately(Id recordId);
+		OperationResult undeleteImmediately(SObject record);
+		OperationResult undeleteImmediately(Iterable<Id> recordIds);
+		OperationResult undeleteImmediately(List<SObject> records);
+		// Immediate Publish
+		OperationResult publishImmediately(SObject record);
+		OperationResult publishImmediately(List<SObject> records);
+		// Mocking
+		Commitable identifier(String dmlIdentifier); // used for mocking and tracking results
 		// Debug
 		void preview();
 		// Field Level Security
@@ -148,6 +178,44 @@ public inherited sharing class DML implements Commitable {
 		List<String> getFields();
 	}
 
+	// Mockking
+
+	@TestVisible
+	private static Mockable whenDmlIdentifier(String dmlIdentifier) {
+		if (!DML.dmlIdentifierToMock.containsKey(dmlIdentifier)) {
+			DML.dmlIdentifierToMock.put(dmlIdentifier, new DmlMock());
+		}
+		return DML.dmlIdentifierToMock.get(dmlIdentifier);
+	}
+
+	@TestVisible
+	private static Result getMockResulfForDml(String dmlIdentifier) {
+		if (!DML.dmlIdentifierToResult.containsKey(dmlIdentifier)) {
+			throw new DmlException('No result found for dml identifier: ' + dmlIdentifier);
+		}
+		return DML.dmlIdentifierToResult.get(dmlIdentifier);
+	}
+
+	public interface Mockable {
+		Mockable thenMockAllDmls();
+		// Per Operation
+		Mockable thenMockAllInserts();
+		Mockable thenMockAllUpdates();
+		Mockable thenMockAllUpserts();
+		Mockable thenMockAllDeletes();
+		Mockable thenMockAllUndelete();
+		Mockable thenMockAllPublishes();
+		// Per Object Type
+		Mockable thenMockInsertFor(SObjectType objectType);
+		Mockable thenMockUpdateFor(SObjectType objectType);
+		Mockable thenMockUpsertFor(SObjectType objectType);
+		Mockable thenMockDeleteFor(SObjectType objectType);
+		Mockable thenMockUndeletFor(SObjectType objectType);
+		Mockable thenMockPublishFor(SObjectType objectType);
+	}
+
+	// Hooks
+
 	public interface Hook {
 		void before();
 		void after();
@@ -155,25 +223,29 @@ public inherited sharing class DML implements Commitable {
 
 	// Implementation
 
-	private DmlOperation insertCommand = new InsertOperation();
-	private DmlOperation updateCommand = new UpdateOperation();
-	private DmlOperation upsertCommand = new UpsertOperation();
-	private DmlOperation deleteCommand = new DeleteOperation();
-	private DmlOperation undeleteCommand = new UndeleteOperation();
-	private DmlOperation publishCommand = new PlatformEventOperation();
+	private Configuration configuration = new Configuration();
+
+	private DmlOperation insertCommand = new InsertOperation(this.configuration);
+	private DmlOperation updateCommand = new UpdateOperation(this.configuration);
+	private DmlOperation upsertCommand = new UpsertOperation(this.configuration);
+	private DmlOperation deleteCommand = new DeleteOperation(this.configuration);
+	private DmlOperation undeleteCommand = new UndeleteOperation(this.configuration);
+	private DmlOperation publishCommand = new PlatformEventOperation(this.configuration);
 
 	public enum Type { INSERT_DML, UPDATE_DML, UPSERT_DML, DELETE_DML, UNDELETE_DML, HARD_DELETE_DML, MERGE_DML, PUBLISH_DML }
 
 	private DML.Hook hook = null;
+	private String dmlIdentifier = null;
+
+	@TestVisible
+	private static final RandomIdGenerator randomIdGenerator = new RandomIdGenerator();
+	private static final Map<String, Result> dmlIdentifierToResult = new Map<String, Result>();
+	private static final Map<String, DmlMock> dmlIdentifierToMock = new Map<String, DmlMock>();
 
 	public DML() {} // default constructor
 
 	public DML(List<SObjectType> customExecutionOrder) {
-		this.insertCommand.executionOrder(customExecutionOrder);
-		this.updateCommand.executionOrder(customExecutionOrder);
-		this.upsertCommand.executionOrder(customExecutionOrder);
-		this.deleteCommand.executionOrder(customExecutionOrder);
-		this.undeleteCommand.executionOrder(customExecutionOrder);
+		this.configuration.executionOrder(customExecutionOrder);
 	}
 
 	// Insert
@@ -196,6 +268,22 @@ public inherited sharing class DML implements Commitable {
 		return this;
 	}
 
+	public OperationResult insertImmediately(SObject record) {
+		return this.insertImmediately(DML.Record(record));
+	}
+
+	public OperationResult insertImmediately(DML.Record record) {
+		return new InsertOperation(this.configuration).register(record).commitWork().get(0);
+	}
+
+	public OperationResult insertImmediately(List<SObject> records) {
+		return this.insertImmediately(DML.Records(records));
+	}
+
+	public OperationResult insertImmediately(DML.Records records) {
+		return new InsertOperation(this.configuration).register(records).commitWork().get(0);
+	}
+
 	// Update
 	
 	public Commitable toUpdate(SObject record) {
@@ -216,6 +304,22 @@ public inherited sharing class DML implements Commitable {
 		return this;
 	}
 
+	public OperationResult updateImmediately(SObject record) {
+		return this.updateImmediately(DML.Record(record));
+	}
+
+	public OperationResult updateImmediately(DML.Record record) {
+		return new UpdateOperation(this.configuration).register(record).commitWork().get(0);
+	}
+
+	public OperationResult updateImmediately(List<SObject> records) {
+		return this.updateImmediately(DML.Records(records));
+	}
+
+	public OperationResult updateImmediately(DML.Records records) {
+		return new UpdateOperation(this.configuration).register(records).commitWork().get(0);
+	}
+
 	// Upsert
 
 	public Commitable toUpsert(SObject record) {
@@ -234,6 +338,22 @@ public inherited sharing class DML implements Commitable {
 	public Commitable toUpsert(DML.Records records) {
 		this.upsertCommand.register(records);
 		return this;
+	}
+
+	public OperationResult upsertImmediately(SObject record) {
+		return this.upsertImmediately(DML.Record(record));
+	}
+
+	public OperationResult upsertImmediately(DML.Record record) {
+		return new UpsertOperation(this.configuration).register(record).commitWork().get(0);
+	}
+
+	public OperationResult upsertImmediately(List<SObject> records) {
+		return this.upsertImmediately(DML.Records(records));
+	}
+
+	public OperationResult upsertImmediately(DML.Records records) {
+		return new UpsertOperation(this.configuration).register(records).commitWork().get(0);
 	}
 
 	// Delete
@@ -257,6 +377,22 @@ public inherited sharing class DML implements Commitable {
 		return this;
 	}
 
+	public OperationResult deleteImmediately(Id recordId) {
+		return new DeleteOperation(this.configuration).register(DML.Record(recordId)).commitWork().get(0);
+	}
+
+	public OperationResult deleteImmediately(SObject record) {
+		return this.deleteImmediately(record.Id);
+	}
+
+	public OperationResult deleteImmediately(Iterable<Id> recordIds) {
+		return new DeleteOperation(this.configuration).register(DML.Records(recordIds)).commitWork().get(0);
+	}
+
+	public OperationResult deleteImmediately(List<SObject> records) {
+		return new DeleteOperation(this.configuration).register(DML.Records(records)).commitWork().get(0);
+	}
+
 	// Undelete
 
 	public Commitable toUndelete(Id recordId) {
@@ -278,6 +414,22 @@ public inherited sharing class DML implements Commitable {
 		return this;
 	}
 
+	public OperationResult undeleteImmediately(Id recordId) {
+		return new UndeleteOperation(this.configuration).register(DML.Record(recordId)).commitWork().get(0);
+	}
+
+	public OperationResult undeleteImmediately(SObject record) {
+		return this.undeleteImmediately(record.Id);
+	}
+
+	public OperationResult undeleteImmediately(Iterable<Id> recordIds) {
+		return new UndeleteOperation(this.configuration).register(DML.Records(recordIds)).commitWork().get(0);
+	}
+
+	public OperationResult undeleteImmediately(List<SObject> records) {
+		return new UndeleteOperation(this.configuration).register(DML.Records(records)).commitWork().get(0);
+	}
+
 	// Platform Event
 
 	public Commitable toPublish(SObject record) {
@@ -287,6 +439,22 @@ public inherited sharing class DML implements Commitable {
 
 	public Commitable toPublish(List<SObject> records) {
 		this.publishCommand.register(DML.Records(records));
+		return this;
+	}
+
+	public OperationResult publishImmediately(SObject record) {
+		return new PlatformEventOperation(this.configuration).register(DML.Record(record)).commitWork().get(0);
+	}
+
+	public OperationResult publishImmediately(List<SObject> records) {
+		return new PlatformEventOperation(this.configuration).register(DML.Records(records)).commitWork().get(0);
+	}
+
+	// Identifier
+
+	public Commitable identifier(String dmlIdentifier) {
+		this.configuration.identifier(dmlIdentifier);
+		this.dmlIdentifier = dmlIdentifier;
 		return this;
 	}
 
@@ -304,60 +472,36 @@ public inherited sharing class DML implements Commitable {
 	// Field Level Security
 
 	public Commitable userMode() {
-		this.insertCommand.userMode();
-		this.updateCommand.userMode();
-		this.upsertCommand.userMode();
-		this.deleteCommand.userMode();
-		this.undeleteCommand.userMode();
-		this.publishCommand.userMode();
+		this.configuration.userMode();
 		return this;
 	}
 
 	public Commitable systemMode() {
-		this.insertCommand.systemMode();
-		this.updateCommand.systemMode();
-		this.upsertCommand.systemMode();
-		this.deleteCommand.systemMode();
-		this.undeleteCommand.systemMode();
-		this.publishCommand.systemMode();
+		this.configuration.systemMode();
 		return this;
 	}
 
 	// Sharing Mode
 
 	public Commitable withSharing() {
-		this.updateCommand.withSharing();
-		this.upsertCommand.withSharing();
-		this.deleteCommand.withSharing();
-		this.undeleteCommand.withSharing();
-		this.publishCommand.withSharing();
+		this.configuration.withSharing();
 		return this;
 	}
 
 	public Commitable withoutSharing() {
-		this.insertCommand.withoutSharing();
-		this.updateCommand.withoutSharing();
-		this.upsertCommand.withoutSharing();
-		this.deleteCommand.withoutSharing();
-		this.undeleteCommand.withoutSharing();
-		this.publishCommand.withoutSharing();
+		this.configuration.withoutSharing();
 		return this;
 	}
 
 	// Other configs
 
 	public Commitable allowPartialSuccess() {
-		this.insertCommand.allowPartialSuccess();
-		this.updateCommand.allowPartialSuccess();
-		this.upsertCommand.allowPartialSuccess();
-		this.deleteCommand.allowPartialSuccess();
-		this.undeleteCommand.allowPartialSuccess();
+		this.configuration.allowPartialSuccess();
 		return this;
 	}
 
 	public Commitable options(Database.DmlOptions options) {
-		this.insertCommand.options(options);
-		this.updateCommand.options(options);
+		this.configuration.options(options);
 		return this;
 	}
 
@@ -402,6 +546,8 @@ public inherited sharing class DML implements Commitable {
 			result.add(Type.UNDELETE_DML, this.undeleteCommand.commitWork());
 			result.add(Type.PUBLISH_DML, this.publishCommand.commitWork());
 
+			DML.dmlIdentifierToResult.put(this.dmlIdentifier, result);
+
 			this.hook?.after();
 		} catch (Exception e) {
 			throw e;
@@ -426,12 +572,12 @@ public inherited sharing class DML implements Commitable {
 	}
 
 	private void reset() {
-		this.insertCommand = new InsertOperation();
-		this.updateCommand = new UpdateOperation();
-		this.upsertCommand = new UpsertOperation();
-		this.deleteCommand = new DeleteOperation();
-		this.undeleteCommand = new UndeleteOperation();
-		this.publishCommand = new PlatformEventOperation();
+		this.insertCommand = new InsertOperation(this.configuration);
+		this.updateCommand = new UpdateOperation(this.configuration);
+		this.upsertCommand = new UpsertOperation(this.configuration);
+		this.deleteCommand = new DeleteOperation(this.configuration);
+		this.undeleteCommand = new UndeleteOperation(this.configuration);
+		this.publishCommand = new PlatformEventOperation(this.configuration);
 	}
 
 	public class DmlResult implements DML.Result {
@@ -477,27 +623,27 @@ public inherited sharing class DML implements Commitable {
 		}
 
 		public OperationResult inserted(SObjectType objectType) {
-			return this.operationResultsByObjectType.get(Type.INSERT_DML).get(objectType) ?? new OperationSummary(objectType, Type.INSERT_DML);
+			return this.getOperationResult(Type.INSERT_DML, objectType);
 		}
 
 		public OperationResult updated(SObjectType objectType) {
-			return this.operationResultsByObjectType.get(Type.UPDATE_DML).get(objectType) ?? new OperationSummary(objectType, Type.UPDATE_DML);
+			return this.getOperationResult(Type.UPDATE_DML, objectType);
 		}
 
 		public OperationResult upserted(SObjectType objectType) {
-			return this.operationResultsByObjectType.get(Type.UPSERT_DML).get(objectType) ?? new OperationSummary(objectType, Type.UPSERT_DML);
+			return this.getOperationResult(Type.UPSERT_DML, objectType);
 		}
 
 		public OperationResult deleted(SObjectType objectType) {
-			return this.operationResultsByObjectType.get(Type.DELETE_DML).get(objectType) ?? new OperationSummary(objectType, Type.DELETE_DML);
+			return this.getOperationResult(Type.DELETE_DML, objectType);
 		}
 
 		public OperationResult undeleted(SObjectType objectType) {
-			return this.operationResultsByObjectType.get(Type.UNDELETE_DML).get(objectType) ?? new OperationSummary(objectType, Type.UNDELETE_DML);
+			return this.getOperationResult(Type.UNDELETE_DML, objectType);
 		}
 
 		public OperationResult published(SObjectType objectType) {
-			return this.operationResultsByObjectType.get(Type.PUBLISH_DML).get(objectType) ?? new OperationSummary(objectType, Type.PUBLISH_DML);
+			return this.getOperationResult(Type.PUBLISH_DML, objectType);
 		}
 
 		private List<OperationResult> getOperationResults(Type operationType) {
@@ -511,7 +657,7 @@ public inherited sharing class DML implements Commitable {
 		}
 
 		private OperationResult getOperationResult(Type operationType, SObjectType objectType) {
-			return this.operationResultsByObjectType.get(operationType).get(objectType);
+			return this.operationResultsByObjectType.get(operationType).get(objectType) ?? new OperationSummary(objectType, operationType);
 		}
 
 		public List<OperationResult> all() {
@@ -525,16 +671,16 @@ public inherited sharing class DML implements Commitable {
 		}
 	}
 
-	public abstract class DmlOperation {
-		protected Map<SObjectType, RecordsContainer> recordsProcessContainerByType = new Map<SObjectType, RecordsContainer>();
-		protected List<SObjectType> customExecutionOrder = new List<SObjectType>();
-		protected System.AccessLevel accessMode = System.AccessLevel.USER_MODE;
-		protected System.AccessType accessType = null;
-		protected Database.DmlOptions options = new Database.DMLOptions();
-		protected DmlSharing sharingExecutor = new InheritedSharing();
-		protected Boolean allOrNone = true;
+	private class Configuration {
+		private List<SObjectType> customExecutionOrder = new List<SObjectType>();
+		private System.AccessLevel accessMode = System.AccessLevel.USER_MODE;
+		private System.AccessType accessType = null;
+		private Database.DmlOptions options = new Database.DMLOptions();
+		private DmlSharing sharingExecutor = new InheritedSharing();
+		private Boolean allOrNone = true;
+		private String dmlIdentifier = null;
 
-		public DmlOperation() {
+		public Configuration() {
 			this.options.optAllOrNone = this.allOrNone;
 		}
 
@@ -559,18 +705,16 @@ public inherited sharing class DML implements Commitable {
 		}
 
 		public void executionOrder(List<SObjectType> customExecutionOrder) {
-			this.customExecutionOrder.addAll(customExecutionOrder);
+			this.customExecutionOrder = customExecutionOrder;
 		}
 
-		public DmlOperation allowPartialSuccess() {
+		public void identifier(String dmlIdentifier) {
+			this.dmlIdentifier = dmlIdentifier;
+		}
+
+		public void allowPartialSuccess() {
 			this.allOrNone = false;
 			this.options.optAllOrNone = false;
-			return this;
-		}
-
-		public DmlOperation skipDuplicateRules() {
-			this.options.duplicateRuleHeader.allowSave = true;
-			return this;
 		}
 
 		public void options(Database.DmlOptions options) {
@@ -578,22 +722,42 @@ public inherited sharing class DML implements Commitable {
 			this.options.optAllOrNone = this.options.optAllOrNone ?? this.allOrNone ?? true;
 		}
 
-		public void register(DML.Records records) {
+		public void skipDuplicateRules() {
+			this.options.duplicateRuleHeader.allowSave = true;
+		}
+	}
+
+	public abstract class DmlOperation {
+		protected Map<SObjectType, RecordsContainer> recordsProcessContainerByType = new Map<SObjectType, RecordsContainer>();
+		protected Configuration globalConfiguration;
+
+		public DmlOperation(Configuration configuration) {
+			this.globalConfiguration = configuration;
+		}
+
+		public DmlOperation register(DML.Records records) {
 			for (DML.Record record : records.get()) {
 				this.register(record);
 			}
+
+			return this;
 		}
 
-		public void register(DML.Record record) {
+		public DmlOperation register(DML.Record record) {
 			this.validate(record);
 			
 			EnhancedRecord enhancedRecord = record.get();
 			SObjectType typeName = enhancedRecord.getSObjectType();
 
-			if (!this.customExecutionOrder.isEmpty() && !this.customExecutionOrder.contains(typeName)) {
-				throw new DmlException('Only the following types can be registered: ' + this.customExecutionOrder);
+			if (!this.globalConfiguration.customExecutionOrder.isEmpty() && !this.globalConfiguration.customExecutionOrder.contains(typeName)) {
+				throw new DmlException('Only the following types can be registered: ' + this.globalConfiguration.customExecutionOrder);
 			}
 
+			this.addNewRecordToProcess(typeName, enhancedRecord);
+			return this;
+		}
+
+		private void addNewRecordToProcess(SObjectType typeName, EnhancedRecord enhancedRecord) {
 			if (!this.recordsProcessContainerByType.containsKey(typeName)) {
 				this.recordsProcessContainerByType.put(typeName, new RecordsContainer());
 			}
@@ -606,11 +770,11 @@ public inherited sharing class DML implements Commitable {
 		}
 
 		public List<OperationResult> commitWork() {
-			return this.sharingExecutor.execute(this);
+			return this.globalConfiguration.sharingExecutor.execute(this);
 		}
 
 		public List<OperationResult> execute() {
-			if (!this.customExecutionOrder.isEmpty()) {
+			if (!this.globalConfiguration.customExecutionOrder.isEmpty()) {
 				return this.processBasedOnCustomOrder();
 			} 
 
@@ -618,30 +782,52 @@ public inherited sharing class DML implements Commitable {
 		}
 
 		private List<OperationResult> processBasedOnCustomOrder() {
+			return this.process(this.globalConfiguration.customExecutionOrder);
+		}
+
+		private List<OperationResult> processBasedOnRegistrationOrder() {
+			return this.process(this.recordsProcessContainerByType.keySet());
+		}
+
+		private List<OperationResult> process(Iterable<SObjectType> objectTypesOrder) {
 			List<OperationResult> operationResults = new List<OperationResult>();
 
-			for (SObjectType objectTypeName : this.customExecutionOrder) {
+			for (SObjectType objectTypeName : objectTypesOrder) {
 				if (!this.recordsProcessContainerByType.containsKey(objectTypeName)) {
 					continue;
 				}
 
-				operationResults.add(executeDml(objectTypeName));
+				List<SObject> recordsToProcess = this.recordsProcessContainerByType.get(objectTypeName).getRecordsToProcess(this.globalConfiguration.accessType);
+
+				DmlMock dmlMock = DML.dmlIdentifierToMock.get(this.globalConfiguration.dmlIdentifier);
+
+				List<RecordResult> recordResults;
+
+				if (dmlMock == null || !dmlMock.shouldBeMocked(this.getType(), objectTypeName)) {
+					recordResults = this.executeDml(recordsToProcess);
+				} else {
+					recordResults = this.getMockedRecordResults(recordsToProcess);
+				}
+				
+				operationResults.add(new OperationSummary(objectTypeName, this.getType()).setRecords(recordsToProcess).setRecordResults(recordResults));
 			}
 
 			return operationResults;
 		}
 
-		private List<OperationResult> processBasedOnRegistrationOrder() {
-			List<OperationResult> operationResults = new List<OperationResult>();
+		private List<RecordResult> getMockedRecordResults(List<SObject> recordsToProcess) {
+			List<RecordResult> recordResults = new List<RecordResult>();
 
-			for (SObjectType objectTypeName : this.recordsProcessContainerByType.keySet()) {
-				operationResults.add(executeDml(objectTypeName));
-			} 
+			for (SObject record : recordsToProcess) {
+				recordResults.add(this.prepareMockedDml(record));
+			}
 
-			return operationResults;
+			return recordResults;
 		}
 
-		public abstract OperationResult executeDml(SObjectType objectType);
+		public abstract Type getType();
+		public abstract List<RecordResult> executeDml(List<SObject> recordsToProcess);
+		public abstract RecordResult prepareMockedDml(SObject record);
 
 		public virtual void validate(DML.Record record) {
 			return;
@@ -667,7 +853,7 @@ public inherited sharing class DML implements Commitable {
 				return recordsToProcess;
 			}
 
-			return Security.stripInaccessible(accessType, recordsToProcess).getRecords();
+			return System.Security.stripInaccessible(accessType, recordsToProcess).getRecords();
 		}
 		
 		public List<Id> getRecordIdsToProcess() {
@@ -682,90 +868,144 @@ public inherited sharing class DML implements Commitable {
 	}
 
 	public inherited sharing class InsertOperation extends DmlOperation {
+		public InsertOperation(Configuration configuration) {
+			super(configuration);
+		}
+
+		public override Type getType() {
+			return Type.INSERT_DML;
+		}
+
 		public override void validate(DML.Record record) {
 			if (record.get().doesRecordHaveIdSpecified()) {
 				throw new DmlException('Only new records can be registered as new.');
 			}
 		}
 
-		public override OperationResult executeDml(SObjectType objectType) {
-			List<SObject> recordsToProcess = this.recordsProcessContainerByType.get(objectType).getRecordsToProcess(this.accessType);
-			List<Database.SaveResult> saveResults = Database.insert(recordsToProcess, this.options, this.accessMode);
+		public override List<RecordResult> executeDml(List<SObject> recordsToProcess) {
+			List<Database.SaveResult> saveResults = Database.insert(recordsToProcess, this.globalConfiguration.options, this.globalConfiguration.accessMode);
+			return new SaveResultAdapter(saveResults).transform();
+		}
 
-			return new OperationSummary(objectType, Type.INSERT_DML).setRecords(recordsToProcess).setRecordResults(new SaveResultAdapter(saveResults).transform());
+		public override RecordResult prepareMockedDml(SObject record) {
+			record.put('Id', DML.randomIdGenerator.get(record.getSObjectType()));
+			return new RecordSummary().isSuccess(true).recordId(record.Id);
 		}
 	}
 
 	public inherited sharing class UpdateOperation extends DmlOperation {
+		public UpdateOperation(Configuration configuration) {
+			super(configuration);
+		}
+
+		public override Type getType() {
+			return Type.UPDATE_DML;
+		}
+
 		public override void validate(DML.Record record) {
 			if (!record.get().doesRecordHaveIdSpecified()) {
 				throw new DmlException('Only existing records can be updated.');
 			}
 		}
 
-		public override OperationResult executeDml(SObjectType objectType) {
-			List<SObject> recordsToProcess = this.recordsProcessContainerByType.get(objectType).getRecordsToProcess(this.accessType);
-			List<Database.SaveResult> saveResults = Database.update(recordsToProcess, this.options, this.accessMode);
+		public override List<RecordResult> executeDml(List<SObject> recordsToProcess) {
+			List<Database.SaveResult> saveResults = Database.update(recordsToProcess, this.globalConfiguration.options, this.globalConfiguration.accessMode);
+			return new SaveResultAdapter(saveResults).transform();
+		}
 
-			return new OperationSummary(objectType, Type.UPDATE_DML)
-				.setRecords(recordsToProcess)
-				.setRecordResults(new SaveResultAdapter(saveResults).transform());
+		public override RecordResult prepareMockedDml(SObject record) {
+			return new RecordSummary().isSuccess(true).recordId(record.Id);
 		}
 	}
 
 	public inherited sharing class UpsertOperation extends DmlOperation {
-		public override OperationResult executeDml(SObjectType objectType) {
-			List<SObject> recordsToProcess = this.recordsProcessContainerByType.get(objectType).getRecordsToProcess(this.accessType);
-			List<Database.UpsertResult> upsertResults = Database.upsert(recordsToProcess, this.allOrNone, this.accessMode);
+		public UpsertOperation(Configuration configuration) {
+			super(configuration);
+		}
 
-			return new OperationSummary(objectType, Type.UPSERT_DML)
-				.setRecords(recordsToProcess)
-				.setRecordResults(new UpsertResultAdapter(upsertResults).transform());
+		public override Type getType() {
+			return Type.UPSERT_DML;
+		}
+
+		public override List<RecordResult> executeDml(List<SObject> recordsToProcess) {
+			List<Database.UpsertResult> upsertResults = Database.upsert(recordsToProcess, this.globalConfiguration.allOrNone, this.globalConfiguration.accessMode);
+			return new UpsertResultAdapter(upsertResults).transform();
+		}
+
+		public override RecordResult prepareMockedDml(SObject record) {
+			if (record.Id == null) {
+				record.put('Id', DML.randomIdGenerator.get(record.getSObjectType()));
+			}
+			return new RecordSummary().isSuccess(true).recordId(record.Id);
 		}
 	}
 
 	public inherited sharing class DeleteOperation extends DmlOperation {
+		public DeleteOperation(Configuration configuration) {
+			super(configuration);
+		}
+
+		public override Type getType() {
+			return Type.DELETE_DML;
+		}
+
 		public override void validate(DML.Record record) {
 			if (!record.get().doesRecordHaveIdSpecified()) {
 				throw new DmlException('Only existing records can be registered as deleted.');
 			}
 		}
 
-		public override OperationResult executeDml(SObjectType objectType) {
-			List<SObject> recordsToProcess = this.recordsProcessContainerByType.get(objectType).getRecordsToProcess(this.accessType);
-			List<Database.DeleteResult> deleteResults = Database.delete(recordsToProcess, this.allOrNone, this.accessMode);
+		public override List<RecordResult> executeDml(List<SObject> recordsToProcess) {
+			List<Database.DeleteResult> deleteResults = Database.delete(recordsToProcess, this.globalConfiguration.allOrNone, this.globalConfiguration.accessMode);
+			return new DeleteResultAdapter(deleteResults).transform();
+		}
 
-			return new OperationSummary(objectType, Type.DELETE_DML)
-				.setRecords(recordsToProcess)
-				.setRecordResults(new DeleteResultAdapter(deleteResults).transform());
+		public override RecordResult prepareMockedDml(SObject record) {
+			return new RecordSummary().isSuccess(true).recordId(record.Id);
 		}
 	}
 
 	public inherited sharing class UndeleteOperation extends DmlOperation {
+		public UndeleteOperation(Configuration configuration) {
+			super(configuration);
+		}
+
+		public override Type getType() {
+			return Type.UNDELETE_DML;
+		}
+
 		public override void validate(DML.Record record) {
 			if (!record.get().doesRecordHaveIdSpecified()) {
 				throw new DmlException('Only deleted records can be undeleted.');
 			}
 		}
 
-		public override OperationResult executeDml(SObjectType objectType) {
-			List<SObject> recordsToProcess = this.recordsProcessContainerByType.get(objectType).getRecordsToProcess(this.accessType);
-			List<Database.UndeleteResult> undeleteResults = Database.undelete(recordsToProcess, this.allOrNone, this.accessMode);
+		public override List<RecordResult> executeDml(List<SObject> recordsToProcess) {
+			List<Database.UndeleteResult> undeleteResults = Database.undelete(recordsToProcess, this.globalConfiguration.allOrNone, this.globalConfiguration.accessMode);
+			return new UndeleteResultAdapter(undeleteResults).transform();
+		}
 
-			return new OperationSummary(objectType, Type.UNDELETE_DML)
-				.setRecords(recordsToProcess)
-				.setRecordResults(new UndeleteResultAdapter(undeleteResults).transform());
+		public override RecordResult prepareMockedDml(SObject record) {
+			return new RecordSummary().isSuccess(true).recordId(record.Id);
 		}
 	}
 
 	public inherited sharing class PlatformEventOperation extends DmlOperation {
-		public override OperationResult executeDml(SObjectType objectType) {
-			List<SObject> recordsToProcess = this.recordsProcessContainerByType.get(objectType).getRecordsToProcess(this.accessType);
-			List<Database.SaveResult> saveResults = EventBus.publish(recordsToProcess);
+		public PlatformEventOperation(Configuration configuration) {
+			super(configuration);
+		}
 
-			return new OperationSummary(objectType, Type.PUBLISH_DML)
-				.setRecords(recordsToProcess)
-				.setRecordResults(new SaveResultAdapter(saveResults).transform());
+		public override Type getType() {
+			return Type.PUBLISH_DML;
+		}
+
+		public override List<RecordResult> executeDml(List<SObject> recordsToProcess) {
+			List<Database.SaveResult> saveResults = EventBus.publish(recordsToProcess);
+			return new SaveResultAdapter(saveResults).transform();
+		}
+
+		public override RecordResult prepareMockedDml(SObject record) {
+			return new RecordSummary().isSuccess(true).recordId(DML.randomIdGenerator.get(record.getSObjectType()));
 		}
 	}
 	
@@ -1006,6 +1246,90 @@ public inherited sharing class DML implements Commitable {
 		}
 	}
 
+	private class DmlMock implements Mockable {
+		private Set<Type> mockedDmlTypes = new Set<Type>();
+		private Map<Type, Set<SObjectType>> mockedObjectTypesByDmlType = new Map<Type, Set<SObjectType>>{
+			Type.INSERT_DML => new Set<SObjectType>(),
+			Type.UPDATE_DML => new Set<SObjectType>(),
+			Type.UPSERT_DML => new Set<SObjectType>(),
+			Type.DELETE_DML => new Set<SObjectType>(),
+			Type.UNDELETE_DML => new Set<SObjectType>(),
+			Type.PUBLISH_DML => new Set<SObjectType>()
+		};
+
+		public Mockable thenMockAllDmls() {
+			this.thenMockAllInserts();
+			this.thenMockAllUpdates();
+			this.thenMockAllUpserts();
+			this.thenMockAllDeletes();
+			this.thenMockAllUndelete();
+			this.thenMockAllPublishes();
+			return this;
+		}
+		
+		public Mockable thenMockAllInserts() {
+			return this.thenMockDml(Type.INSERT_DML);
+		}
+
+		public Mockable thenMockAllUpdates() {
+			return this.thenMockDml(Type.UPDATE_DML);
+		}
+
+		public Mockable thenMockAllUpserts() {
+			return this.thenMockDml(Type.UPSERT_DML);
+		}
+
+		public Mockable thenMockAllDeletes() {
+			return this.thenMockDml(Type.DELETE_DML);
+		}
+
+		public Mockable thenMockAllUndelete() {
+			return this.thenMockDml(Type.UNDELETE_DML);
+		}
+
+		public Mockable thenMockAllPublishes() {
+			return this.thenMockDml(Type.PUBLISH_DML);
+		}
+
+		private Mockable thenMockDml(Type dmlType) {
+			this.mockedDmlTypes.add(dmlType);
+			return this;
+		}
+
+		public Mockable thenMockInsertFor(SObjectType objectType) {
+			return this.thenMockDmlFor(Type.INSERT_DML, objectType);
+		}
+
+		public Mockable thenMockUpdateFor(SObjectType objectType) {
+			return this.thenMockDmlFor(Type.UPDATE_DML, objectType);
+		}
+
+		public Mockable thenMockUpsertFor(SObjectType objectType) {
+			return this.thenMockDmlFor(Type.UPSERT_DML, objectType);
+		}
+
+		public Mockable thenMockDeleteFor(SObjectType objectType) {
+			return this.thenMockDmlFor(Type.DELETE_DML, objectType);
+		}
+
+		public Mockable thenMockUndeletFor(SObjectType objectType) {
+			return this.thenMockDmlFor(Type.UNDELETE_DML, objectType);
+		}
+
+		public Mockable thenMockPublishFor(SObjectType objectType) {
+			return this.thenMockDmlFor(Type.PUBLISH_DML, objectType);
+		}
+
+		private Mockable thenMockDmlFor(Type dmlType, SObjectType objectType) {
+			this.mockedObjectTypesByDmlType.get(dmlType).add(objectType);
+			return this;
+		}
+
+		public Boolean shouldBeMocked(Type dmlType, SObjectType objectType) {
+			return this.mockedDmlTypes.contains(dmlType) || this.mockedObjectTypesByDmlType.get(dmlType).contains(objectType);
+		}
+	}
+
 	private class DmlRecords implements Records {
 		private List<SObject> recordsToProcess = new List<SObject>();
 
@@ -1237,6 +1561,25 @@ public inherited sharing class DML implements Commitable {
 			if (!relatedHasExternalIdField) {
 				throw new DmlException('Invalid argument: externalIdField. Field supplied is not a known field on the target sObject.');
 			}
+		}
+	}
+
+	public class RandomIdGenerator {
+		private final String RANDOM_STRING_CHARACTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqrstuvwxyz';
+
+		public Id get(SObjectType objectType) {
+			return get(objectType.getDescribe().getKeyPrefix());
+		}
+
+		public Id get(String prefix) {
+			String randomPart = '';
+
+			while (randomPart.length() < 8) {
+				Integer idx = Math.mod(Math.abs(Crypto.getRandomInteger()), RANDOM_STRING_CHARACTERS.length());
+				randomPart += RANDOM_STRING_CHARACTERS.substring(idx, idx + 1);
+			}
+
+			return Id.valueOf(prefix + '0000' + randomPart);
 		}
 	}
 }
