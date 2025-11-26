@@ -2,7 +2,7 @@
  * Copyright (c) 2025 Beyond The Cloud Sp. z o.o. (BeyondTheCloud.Dev)
  * Licensed under the MIT License (https://github.com/beyond-the-cloud-dev/dml-lib/blob/main/LICENSE)
  *
- * v1.6.0
+ * v1.7.0
  *
  * PMD False Positives:
  * - MethodNamingConventions - Some methods are uppercase to indicate that they are "constructors" of othere internal classes
@@ -111,6 +111,7 @@ public inherited sharing class DML implements Commitable {
 		Commitable withoutSharing();
 		// Other configs
 		Commitable allowPartialSuccess();
+		// Commitable throwExceptionWhenFailure();
 		Commitable options(Database.DmlOptions options);
 		Commitable commitHook(DML.Hook callback);
 		// Save
@@ -235,7 +236,6 @@ public inherited sharing class DML implements Commitable {
 	public enum Type { INSERT_DML, UPDATE_DML, UPSERT_DML, DELETE_DML, UNDELETE_DML, HARD_DELETE_DML, MERGE_DML, PUBLISH_DML }
 
 	private DML.Hook hook = null;
-	private String dmlIdentifier = null;
 
 	@TestVisible
 	private static final RandomIdGenerator randomIdGenerator = new RandomIdGenerator();
@@ -454,7 +454,6 @@ public inherited sharing class DML implements Commitable {
 
 	public Commitable identifier(String dmlIdentifier) {
 		this.configuration.identifier(dmlIdentifier);
-		this.dmlIdentifier = dmlIdentifier;
 		return this;
 	}
 
@@ -546,7 +545,7 @@ public inherited sharing class DML implements Commitable {
 			result.add(Type.UNDELETE_DML, this.undeleteCommand.commitWork());
 			result.add(Type.PUBLISH_DML, this.publishCommand.commitWork());
 
-			DML.dmlIdentifierToResult.put(this.dmlIdentifier, result);
+			DML.dmlIdentifierToResult.put(this.configuration.dmlIdentifier, result);
 
 			this.hook?.after();
 		} catch (Exception e) {
