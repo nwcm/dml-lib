@@ -226,14 +226,16 @@ public inherited sharing class DML implements Commitable {
 
 	private Configuration configuration = new Configuration();
 
-	private DmlOperation insertCommand = new InsertOperation(this.configuration);
-	private DmlOperation updateCommand = new UpdateOperation(this.configuration);
-	private DmlOperation upsertCommand = new UpsertOperation(this.configuration);
-	private DmlOperation deleteCommand = new DeleteOperation(this.configuration);
-	private DmlOperation undeleteCommand = new UndeleteOperation(this.configuration);
-	private DmlOperation publishCommand = new PlatformEventOperation(this.configuration);
-
 	public enum Type { INSERT_DML, UPDATE_DML, UPSERT_DML, DELETE_DML, UNDELETE_DML, HARD_DELETE_DML, MERGE_DML, PUBLISH_DML }
+
+	private Map<Type, DmlOperation> operationsByType = new Map<Type, DmlOperation>{
+		Type.INSERT_DML => new InsertOperation(this.configuration),
+		Type.UPDATE_DML => new UpdateOperation(this.configuration),
+		Type.UPSERT_DML => new UpsertOperation(this.configuration),
+		Type.DELETE_DML => new DeleteOperation(this.configuration),
+		Type.UNDELETE_DML => new UndeleteOperation(this.configuration),
+		Type.PUBLISH_DML => new PlatformEventOperation(this.configuration)
+	};
 
 	private DML.Hook hook = null;
 
@@ -242,10 +244,22 @@ public inherited sharing class DML implements Commitable {
 	private static final Map<String, Result> dmlIdentifierToResult = new Map<String, Result>();
 	private static final Map<String, DmlMock> dmlIdentifierToMock = new Map<String, DmlMock>();
 
-	public DML() {} // default constructor
+	public DML() {
+		this.initializeOperations();
+	}
 
 	public DML(List<SObjectType> customExecutionOrder) {
+		this();
 		this.configuration.executionOrder(customExecutionOrder);
+	}
+
+	private void initializeOperations() {
+		this.operationsByType.put(Type.INSERT_DML, new InsertOperation(this.configuration));
+		this.operationsByType.put(Type.UPDATE_DML, new UpdateOperation(this.configuration));
+		this.operationsByType.put(Type.UPSERT_DML, new UpsertOperation(this.configuration));
+		this.operationsByType.put(Type.DELETE_DML, new DeleteOperation(this.configuration));
+		this.operationsByType.put(Type.UNDELETE_DML, new UndeleteOperation(this.configuration));
+		this.operationsByType.put(Type.PUBLISH_DML, new PlatformEventOperation(this.configuration));
 	}
 
 	// Insert
@@ -255,7 +269,7 @@ public inherited sharing class DML implements Commitable {
 	}
 
 	public Commitable toInsert(DML.Record record) {
-		this.insertCommand.register(record);
+		this.operationsByType.get(Type.INSERT_DML).register(record);
 		return this;
 	}
 
@@ -264,7 +278,7 @@ public inherited sharing class DML implements Commitable {
 	}
 	
 	public Commitable toInsert(DML.Records records) {
-		this.insertCommand.register(records);
+		this.operationsByType.get(Type.INSERT_DML).register(records);
 		return this;
 	}
 
@@ -291,7 +305,7 @@ public inherited sharing class DML implements Commitable {
 	}
 
 	public Commitable toUpdate(DML.Record record) {
-		this.updateCommand.register(record);
+		this.operationsByType.get(Type.UPDATE_DML).register(record);
 		return this;
 	}
 
@@ -300,7 +314,7 @@ public inherited sharing class DML implements Commitable {
 	}
 
 	public Commitable toUpdate(DML.Records records) {
-		this.updateCommand.register(records);
+		this.operationsByType.get(Type.UPDATE_DML).register(records);
 		return this;
 	}
 
@@ -327,7 +341,7 @@ public inherited sharing class DML implements Commitable {
 	}
 
 	public Commitable toUpsert(DML.Record record) {
-		this.upsertCommand.register(record);
+		this.operationsByType.get(Type.UPSERT_DML).register(record);
 		return this;
 	}
 
@@ -336,7 +350,7 @@ public inherited sharing class DML implements Commitable {
 	}
 
 	public Commitable toUpsert(DML.Records records) {
-		this.upsertCommand.register(records);
+		this.operationsByType.get(Type.UPSERT_DML).register(records);
 		return this;
 	}
 
@@ -359,7 +373,7 @@ public inherited sharing class DML implements Commitable {
 	// Delete
 
 	public Commitable toDelete(Id recordId) {
-		this.deleteCommand.register(DML.Record(recordId));
+		this.operationsByType.get(Type.DELETE_DML).register(DML.Record(recordId));
 		return this;
 	}
 
@@ -368,12 +382,12 @@ public inherited sharing class DML implements Commitable {
 	}
 
 	public Commitable toDelete(Iterable<Id> recordIds) {
-		this.deleteCommand.register(DML.Records(recordIds));
+		this.operationsByType.get(Type.DELETE_DML).register(DML.Records(recordIds));
 		return this;
 	}
 
 	public Commitable toDelete(List<SObject> records) {
-		this.deleteCommand.register(DML.Records(records));
+		this.operationsByType.get(Type.DELETE_DML).register(DML.Records(records));
 		return this;
 	}
 
@@ -396,7 +410,7 @@ public inherited sharing class DML implements Commitable {
 	// Undelete
 
 	public Commitable toUndelete(Id recordId) {
-		this.undeleteCommand.register(DML.Record(recordId));
+		this.operationsByType.get(Type.UNDELETE_DML).register(DML.Record(recordId));
 		return this;
 	}
 
@@ -405,12 +419,12 @@ public inherited sharing class DML implements Commitable {
 	}
 
 	public Commitable toUndelete(Iterable<Id> recordIds) {
-		this.undeleteCommand.register(DML.Records(recordIds));
+		this.operationsByType.get(Type.UNDELETE_DML).register(DML.Records(recordIds));
 		return this;
 	}
 
 	public Commitable toUndelete(List<SObject> records) {
-		this.undeleteCommand.register(DML.Records(records));
+		this.operationsByType.get(Type.UNDELETE_DML).register(DML.Records(records));
 		return this;
 	}
 
@@ -433,12 +447,12 @@ public inherited sharing class DML implements Commitable {
 	// Platform Event
 
 	public Commitable toPublish(SObject record) {
-		this.publishCommand.register(DML.Record(record));
+		this.operationsByType.get(Type.PUBLISH_DML).register(DML.Record(record));
 		return this;
 	}
 
 	public Commitable toPublish(List<SObject> records) {
-		this.publishCommand.register(DML.Records(records));
+		this.operationsByType.get(Type.PUBLISH_DML).register(DML.Records(records));
 		return this;
 	}
 
@@ -460,23 +474,26 @@ public inherited sharing class DML implements Commitable {
 	// Debug
 
 	public void preview() {
-		this.insertCommand.preview();
-		this.updateCommand.preview();
-		this.upsertCommand.preview();
-		this.deleteCommand.preview();
-		this.undeleteCommand.preview(); 
-		this.publishCommand.preview();
+		this.operationsByType.get(Type.INSERT_DML).preview();
+		this.operationsByType.get(Type.UPDATE_DML).preview();
+		this.operationsByType.get(Type.UPSERT_DML).preview();
+		this.operationsByType.get(Type.DELETE_DML).preview();
+		this.operationsByType.get(Type.UNDELETE_DML).preview(); 
+		this.operationsByType.get(Type.PUBLISH_DML).preview();
 	}
 
 	// Field Level Security
 
 	public Commitable userMode() {
-		this.configuration.userMode();
-		return this;
+		return this.setAccessMode(System.AccessLevel.USER_MODE);
 	}
 
 	public Commitable systemMode() {
-		this.configuration.systemMode();
+		return this.setAccessMode(System.AccessLevel.SYSTEM_MODE);
+	}
+
+	private Commitable setAccessMode(System.AccessLevel accessMode) {
+		this.configuration.accessMode(accessMode);
 		return this;
 	}
 
@@ -516,14 +533,7 @@ public inherited sharing class DML implements Commitable {
 
 		this.hook?.before();
 
-		DMLResult result = new DmlResult();
-
-		result.add(Type.INSERT_DML, this.insertCommand.commitWork());
-		result.add(Type.UPSERT_DML, this.upsertCommand.commitWork());
-		result.add(Type.UPDATE_DML, this.updateCommand.commitWork());
-		result.add(Type.DELETE_DML, this.deleteCommand.commitWork());
-		result.add(Type.UNDELETE_DML, this.undeleteCommand.commitWork());
-		result.add(Type.PUBLISH_DML, this.publishCommand.commitWork());
+		DMLResult result = this.executeOperations();
 
 		this.hook?.after();
 
@@ -538,12 +548,7 @@ public inherited sharing class DML implements Commitable {
 		try {
 			this.hook?.before();
 
-			result.add(Type.INSERT_DML, this.insertCommand.commitWork());
-			result.add(Type.UPSERT_DML, this.upsertCommand.commitWork());
-			result.add(Type.UPDATE_DML, this.updateCommand.commitWork());
-			result.add(Type.DELETE_DML, this.deleteCommand.commitWork());
-			result.add(Type.UNDELETE_DML, this.undeleteCommand.commitWork());
-			result.add(Type.PUBLISH_DML, this.publishCommand.commitWork());
+			result = this.executeOperations();
 
 			DML.dmlIdentifierToResult.put(this.configuration.dmlIdentifier, result);
 
@@ -570,13 +575,22 @@ public inherited sharing class DML implements Commitable {
 		}
 	}
 
+	private DMLResult executeOperations() {
+		DMLResult result = new DmlResult();
+
+		result.add(Type.INSERT_DML, this.operationsByType.get(Type.INSERT_DML).commitWork());
+		result.add(Type.UPSERT_DML, this.operationsByType.get(Type.UPSERT_DML).commitWork());
+		result.add(Type.UPDATE_DML, this.operationsByType.get(Type.UPDATE_DML).commitWork());
+		result.add(Type.DELETE_DML, this.operationsByType.get(Type.DELETE_DML).commitWork());
+		result.add(Type.UNDELETE_DML, this.operationsByType.get(Type.UNDELETE_DML).commitWork());
+		result.add(Type.PUBLISH_DML, this.operationsByType.get(Type.PUBLISH_DML).commitWork());
+
+		return result;
+	}
+
 	private void reset() {
-		this.insertCommand = new InsertOperation(this.configuration);
-		this.updateCommand = new UpdateOperation(this.configuration);
-		this.upsertCommand = new UpsertOperation(this.configuration);
-		this.deleteCommand = new DeleteOperation(this.configuration);
-		this.undeleteCommand = new UndeleteOperation(this.configuration);
-		this.publishCommand = new PlatformEventOperation(this.configuration);
+		this.operationsByType.clear();
+		this.initializeOperations();
 	}
 
 	public class DmlResult implements DML.Result {
@@ -683,12 +697,8 @@ public inherited sharing class DML implements Commitable {
 			this.options.optAllOrNone = this.allOrNone;
 		}
 
-		public void userMode() {
-			this.accessMode = System.AccessLevel.USER_MODE;
-		}
-
-		public void systemMode() {
-			this.accessMode = System.AccessLevel.SYSTEM_MODE;
+		public void accessMode(System.AccessLevel accessMode) {
+			this.accessMode = accessMode;
 		}
 
 		public void stripInaccessible(System.AccessType type) {
