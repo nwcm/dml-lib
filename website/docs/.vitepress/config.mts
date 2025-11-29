@@ -33,6 +33,15 @@ export default defineConfig({
           { text: 'Undelete', link: '/dml/undelete' },
           { text: 'Publish', link: '/dml/publish' }
         ]
+      },
+      {
+        text: 'Configuration',
+        collapsed: false,
+        items: [
+          { text: 'Field-Level Security', link: '/configuration/field-level-security' },
+          { text: 'Sharing Mode', link: '/configuration/sharing-mode' },
+          { text: 'DmlOptions', link: '/configuration/dml-options' }
+        ]
       }
     ],
 
