@@ -15,6 +15,7 @@
     - [x] USER_MODE — enforce CRUD/FLS strictly; fail on violations with clear errors.
     - [x] SYSTEM_MODE — skip CRUD/FLS checks (still subject to validation rules)
     - [ ] stripInaccessible (?) — SANITIZE mode: apply Security.stripInaccessible(CREATABLE/UPDATABLE, records); record stripped fields in results.
+- [ ] upsert(recordToUpsert, externalIdField, allOrNone)
 - [ ] Configurable Sharing Mode
     - [x] Inherited sharing by default — keep DML.cls as inherited sharing
     - [x] with sharing
@@ -118,5 +119,80 @@ DML dml = new DML();
 dml.toInsert(record);
 
 DML.Commitable db = new DML();
+
+```
+
+- [ ] flat intefrace
+```
+public interface Result {
+		List<OperationResult> all();
+		// Per Operation
+		List<OperationResult> inserted();
+		List<OperationResult> updated();
+		List<OperationResult> upserted();
+		List<OperationResult> deleted();
+		List<OperationResult> undeleted();
+		List<OperationResult> published();
+		// Per Object Type
+		OperationResult inserted(Schema.SObjectType objectType);
+		OperationResult updated(Schema.SObjectType objectType);
+		OperationResult upserted(Schema.SObjectType objectType);
+		OperationResult deleted(Schema.SObjectType objectType);
+		OperationResult undeleted(Schema.SObjectType objectType);
+		OperationResult published(Schema.SObjectType objectType);
+		// Failures
+		Boolean hasFailures();
+		List<RecordResult> failures();
+        failures() {
+		if (allOrNone == false) {
+			throw new DmlException('All or none is true');
+		}
+	}
+	}
+    ```
+
+- [ ] Mock better
+
+```
+public interface Mockable {
+		void allDmls();
+		// Per Operation
+		Mockable allInserts();
+		Mockable allUpdates();
+		Mockable allUpserts();
+		Mockable allDeletes();
+		Mockable allUndelete();
+		Mockable allPublishes();
+		// Per Operation Per Object Type
+		Mockable allInsertsFor(SObjectType objectType);
+		Mockable allUpdatesFor(SObjectType objectType);
+		Mockable allUpsertsFor(SObjectType objectType);
+		Mockable allDeletesFor(SObjectType objectType);
+		Mockable allUndeleteFor(SObjectType objectType);
+		Mockable allPublishesFor(SObjectType objectType);
+		// 
+		then(CustomMocabke)
+		// Per Operation
+		// MockableOperation onInsert();
+		// MockableOperation onUpdate();
+		// MockableOperation onUpsert();
+		// MockableOperation onDelete();
+		// MockableOperation onUndelete();
+		// MockableOperation onPublish();
+	}
+
+	public interface CustomMockable {
+		Result execute(List<SObject> records);
+	}
+		
+
+	public interface MockableOperation {
+		MockableOperation forType(SObjectType objectType);
+		matchRecord(SObject record);
+		MockableOperation throwDmlException();
+		MockableOperation throwDmlException(String message);
+		MockableOperation throwDmlException(String message, System.StatusCode statusCode);
+		MockableOperation throwDmlException(String message, System.StatusCode statusCode, List<String> fields);
+	}
 
 ```
