@@ -4,7 +4,24 @@ import { defineConfig } from 'vitepress'
 export default defineConfig({
   title: "DML Lib",
   description: "Apex DML Lib.",
-  head: [['link', { rel: 'icon', href: '/favicon.ico' }]],
+  head: [
+    ['link', { rel: 'icon', href: '/favicon.ico' }],
+    [
+      'script',
+      { async: '', src: 'https://www.googletagmanager.com/gtag/js?id=G-8DMDH217B8' }
+    ],
+    [
+      'script',
+      {},
+      `window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-8DMDH217B8');`
+    ]
+  ],
+  sitemap: {
+    hostname: 'https://dml.beyondthecloud.dev'
+  },
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
     nav: [
@@ -35,8 +52,20 @@ export default defineConfig({
         ]
       },
       {
+        text: 'Mocking',
+        collapsed: true,
+        items: [
+          { text: 'Insert', link: '/mocking/insert' },
+          { text: 'Update', link: '/mocking/update' },
+          { text: 'Upsert', link: '/mocking/upsert' },
+          { text: 'Delete', link: '/mocking/delete' },
+          { text: 'Undelete', link: '/mocking/undelete' },
+          { text: 'Publish', link: '/mocking/publish' }
+        ]
+      },
+      {
         text: 'Configuration',
-        collapsed: false,
+        collapsed: true,
         items: [
           { text: 'Field-Level Security', link: '/configuration/field-level-security' },
           { text: 'Sharing Mode', link: '/configuration/sharing-mode' },
