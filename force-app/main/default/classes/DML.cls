@@ -145,24 +145,24 @@ public inherited sharing class DML implements Commitable {
 	public interface Result {
 		List<OperationResult> all();
 		// Per Operation
-		List<OperationResult> inserted();
-		List<OperationResult> updated();
-		List<OperationResult> upserted();
-		List<OperationResult> deleted();
-		List<OperationResult> undeleted();
-		List<OperationResult> published();
+		List<OperationResult> inserts();
+		List<OperationResult> updates();
+		List<OperationResult> upserts();
+		List<OperationResult> deletes();
+		List<OperationResult> undeletes();
+		List<OperationResult> events();
 		// Per Object OperationType
-		OperationResult inserted(Schema.SObjectType objectType);
-		OperationResult updated(Schema.SObjectType objectType);
-		OperationResult upserted(Schema.SObjectType objectType);
-		OperationResult deleted(Schema.SObjectType objectType);
-		OperationResult undeleted(Schema.SObjectType objectType);
-		OperationResult published(Schema.SObjectType objectType);
+		OperationResult insertsOf(Schema.SObjectType objectType);
+		OperationResult updatesOf(Schema.SObjectType objectType);
+		OperationResult upsertsOf(Schema.SObjectType objectType);
+		OperationResult deletesOf(Schema.SObjectType objectType);
+		OperationResult undeletesOf(Schema.SObjectType objectType);
+		OperationResult eventsOf(Schema.SObjectType objectType);
 	}
 
 	public interface OperationResult {
 		// Metadata
-		OperationType getType();
+		OperationType getOperationType();
 		Schema.SObjectType getObjectType();
 		// Rollups
 		Integer requested();
@@ -195,7 +195,7 @@ public inherited sharing class DML implements Commitable {
 	// Mockking
 
 	@TestVisible
-	private static DML.Mockable whenDmlIdentifier(String dmlIdentifier) {
+	private static DML.Mockable mock(String dmlIdentifier) {
 		if (!dmlIdentifierToMock.containsKey(dmlIdentifier)) {
 			dmlIdentifierToMock.put(dmlIdentifier, new DmlMock());
 		}
@@ -203,7 +203,7 @@ public inherited sharing class DML implements Commitable {
 	}
 
 	@TestVisible
-	private static DML.Result getMockResulfForDml(String dmlIdentifier) {
+	private static DML.Result retrieveResultFor(String dmlIdentifier) {
 		if (!dmlIdentifierToResult.containsKey(dmlIdentifier)) {
 			throw new DmlException('No result found for dml identifier: ' + dmlIdentifier);
 		}
@@ -211,21 +211,21 @@ public inherited sharing class DML implements Commitable {
 	}
 
 	public interface Mockable {
-		Mockable thenMockAllDmls();
+		Mockable allDmls();
 		// Per Operation
-		Mockable thenMockAllInserts();
-		Mockable thenMockAllUpdates();
-		Mockable thenMockAllUpserts();
-		Mockable thenMockAllDeletes();
-		Mockable thenMockAllUndelete();
-		Mockable thenMockAllPublishes();
+		Mockable allInserts();
+		Mockable allUpdates();
+		Mockable allUpserts();
+		Mockable allDeletes();
+		Mockable allUndeletes();
+		Mockable allPublishes();
 		// Per Object OperationType
-		Mockable thenMockInsertFor(SObjectType objectType);
-		Mockable thenMockUpdateFor(SObjectType objectType);
-		Mockable thenMockUpsertFor(SObjectType objectType);
-		Mockable thenMockDeleteFor(SObjectType objectType);
-		Mockable thenMockUndeletFor(SObjectType objectType);
-		Mockable thenMockPublishFor(SObjectType objectType);
+		Mockable insertsFor(SObjectType objectType);
+		Mockable updatesFor(SObjectType objectType);
+		Mockable upsertsFor(SObjectType objectType);
+		Mockable deletesFor(SObjectType objectType);
+		Mockable undeletesFor(SObjectType objectType);
+		Mockable publishesFor(SObjectType objectType);
 	}
 
 	// Hooks
@@ -633,51 +633,51 @@ public inherited sharing class DML implements Commitable {
 			return this;
 		}
 
-		public List<OperationResult> inserted() {
+		public List<OperationResult> inserts() {
 			return this.getOperationResults(OperationType.INSERT_DML);
 		}
 
-		public List<OperationResult> updated() {
+		public List<OperationResult> updates() {
 			return this.getOperationResults(OperationType.UPDATE_DML);
 		}
 
-		public List<OperationResult> upserted() {
+		public List<OperationResult> upserts() {
 			return this.getOperationResults(OperationType.UPSERT_DML);
 		}
 
-		public List<OperationResult> deleted() {
+		public List<OperationResult> deletes() {
 			return this.getOperationResults(OperationType.DELETE_DML);
 		}
 
-		public List<OperationResult> undeleted() {
+		public List<OperationResult> undeletes() {
 			return this.getOperationResults(OperationType.UNDELETE_DML);
 		}
 
-		public List<OperationResult> published() {
+		public List<OperationResult> events() {
 			return this.getOperationResults(OperationType.PUBLISH_DML);
 		}
 
-		public OperationResult inserted(SObjectType objectType) {
+		public OperationResult insertsOf(SObjectType objectType) {
 			return this.getOperationResult(OperationType.INSERT_DML, objectType);
 		}
 
-		public OperationResult updated(SObjectType objectType) {
+		public OperationResult updatesOf(SObjectType objectType) {
 			return this.getOperationResult(OperationType.UPDATE_DML, objectType);
 		}
 
-		public OperationResult upserted(SObjectType objectType) {
+		public OperationResult upsertsOf(SObjectType objectType) {
 			return this.getOperationResult(OperationType.UPSERT_DML, objectType);
 		}
 
-		public OperationResult deleted(SObjectType objectType) {
+		public OperationResult deletesOf(SObjectType objectType) {
 			return this.getOperationResult(OperationType.DELETE_DML, objectType);
 		}
 
-		public OperationResult undeleted(SObjectType objectType) {
+		public OperationResult undeletesOf(SObjectType objectType) {
 			return this.getOperationResult(OperationType.UNDELETE_DML, objectType);
 		}
 
-		public OperationResult published(SObjectType objectType) {
+		public OperationResult eventsOf(SObjectType objectType) {
 			return this.getOperationResult(OperationType.PUBLISH_DML, objectType);
 		}
 
@@ -1171,7 +1171,7 @@ public inherited sharing class DML implements Commitable {
 			return this.objectType;
 		}
 
-		public OperationType getType() {
+		public OperationType getOperationType() {
 			return this.type;
 		}
 
@@ -1322,37 +1322,37 @@ public inherited sharing class DML implements Commitable {
 			OperationType.PUBLISH_DML => new Set<SObjectType>()
 		};
 
-		public Mockable thenMockAllDmls() {
-			this.thenMockAllInserts();
-			this.thenMockAllUpdates();
-			this.thenMockAllUpserts();
-			this.thenMockAllDeletes();
-			this.thenMockAllUndelete();
-			this.thenMockAllPublishes();
+		public Mockable allDmls() {
+			this.allInserts();
+			this.allUpdates();
+			this.allUpserts();
+			this.allDeletes();
+			this.allUndeletes();
+			this.allPublishes();
 			return this;
 		}
 		
-		public Mockable thenMockAllInserts() {
+		public Mockable allInserts() {
 			return this.thenMockDml(OperationType.INSERT_DML);
 		}
 
-		public Mockable thenMockAllUpdates() {
+		public Mockable allUpdates() {
 			return this.thenMockDml(OperationType.UPDATE_DML);
 		}
 
-		public Mockable thenMockAllUpserts() {
+		public Mockable allUpserts() {
 			return this.thenMockDml(OperationType.UPSERT_DML);
 		}
 
-		public Mockable thenMockAllDeletes() {
+		public Mockable allDeletes() {
 			return this.thenMockDml(OperationType.DELETE_DML);
 		}
 
-		public Mockable thenMockAllUndelete() {
+		public Mockable allUndeletes() {
 			return this.thenMockDml(OperationType.UNDELETE_DML);
 		}
 
-		public Mockable thenMockAllPublishes() {
+		public Mockable allPublishes() {
 			return this.thenMockDml(OperationType.PUBLISH_DML);
 		}
 
@@ -1361,27 +1361,27 @@ public inherited sharing class DML implements Commitable {
 			return this;
 		}
 
-		public Mockable thenMockInsertFor(SObjectType objectType) {
+		public Mockable insertsFor(SObjectType objectType) {
 			return this.thenMockDmlFor(OperationType.INSERT_DML, objectType);
 		}
 
-		public Mockable thenMockUpdateFor(SObjectType objectType) {
+		public Mockable updatesFor(SObjectType objectType) {
 			return this.thenMockDmlFor(OperationType.UPDATE_DML, objectType);
 		}
 
-		public Mockable thenMockUpsertFor(SObjectType objectType) {
+		public Mockable upsertsFor(SObjectType objectType) {
 			return this.thenMockDmlFor(OperationType.UPSERT_DML, objectType);
 		}
 
-		public Mockable thenMockDeleteFor(SObjectType objectType) {
+		public Mockable deletesFor(SObjectType objectType) {
 			return this.thenMockDmlFor(OperationType.DELETE_DML, objectType);
 		}
 
-		public Mockable thenMockUndeletFor(SObjectType objectType) {
+		public Mockable undeletesFor(SObjectType objectType) {
 			return this.thenMockDmlFor(OperationType.UNDELETE_DML, objectType);
 		}
 
-		public Mockable thenMockPublishFor(SObjectType objectType) {
+		public Mockable publishesFor(SObjectType objectType) {
 			return this.thenMockDmlFor(OperationType.PUBLISH_DML, objectType);
 		}
 
