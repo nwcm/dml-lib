@@ -162,8 +162,8 @@ public inherited sharing class DML implements Commitable {
 
 	public interface OperationResult {
 		// Metadata
-		OperationType getOperationType();
-		Schema.SObjectType getObjectType();
+		OperationType operationType();
+		Schema.SObjectType objectType();
 		// Rollups
 		Integer requested();
 		Integer succeeded();
@@ -402,7 +402,7 @@ public inherited sharing class DML implements Commitable {
 	}
 
 	public OperationResult deleteImmediately(SObject record) {
-		return this.deleteImmediately(record.Id);
+		return new DeleteOperation(this.configuration).register(Record(record)).commitWork().get(0);
 	}
 
 	public OperationResult deleteImmediately(Iterable<Id> recordIds) {
@@ -439,7 +439,7 @@ public inherited sharing class DML implements Commitable {
 	}
 
 	public OperationResult undeleteImmediately(SObject record) {
-		return this.undeleteImmediately(record.Id);
+		return new UndeleteOperation(this.configuration).register(Record(record)).commitWork().get(0);
 	}
 
 	public OperationResult undeleteImmediately(Iterable<Id> recordIds) {
@@ -627,7 +627,7 @@ public inherited sharing class DML implements Commitable {
 
 		public DmlResult add(OperationType operationType, List<OperationResult> results) {
 			for (OperationResult result : results) {
-				this.operationResultsByObjectType.get(operationType).put(result.getObjectType(), result);
+				this.operationResultsByObjectType.get(operationType).put(result.objectType(), result);
 			}
 
 			return this;
@@ -1167,11 +1167,11 @@ public inherited sharing class DML implements Commitable {
 			return this;
 		}
 
-		public SObjectType getObjectType() {
+		public SObjectType objectType() {
 			return this.objectType;
 		}
 
-		public OperationType getOperationType() {
+		public OperationType operationType() {
 			return this.type;
 		}
 
