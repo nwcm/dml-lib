@@ -164,10 +164,6 @@ public inherited sharing class DML implements Commitable {
 		// Metadata
 		OperationType operationType();
 		Schema.SObjectType objectType();
-		// Rollups
-		Integer requested();
-		Integer succeeded();
-		Integer failed();
 		Boolean hasFailures();
 		// Errors
 		List<Error> errors();
@@ -1176,26 +1172,7 @@ public inherited sharing class DML implements Commitable {
 		}
 
 		public Boolean hasFailures() {
-			return this.failed() > 0;
-		}
-
-		public Integer requested() {
-			return this.records.size();
-		}
-
-		public Integer succeeded() {
-			Integer successCount = 0;
-			
-			for (RecordResult recordResult : this.recordResults) {
-				if (recordResult.isSuccess()) {
-					successCount++;
-				}
-			}
-			return successCount;
-		}
-
-		public Integer failed() {
-			return this.requested() - this.succeeded();
+			return this.failures().size() > 0;
 		}
 
 		public List<Error> errors() {
