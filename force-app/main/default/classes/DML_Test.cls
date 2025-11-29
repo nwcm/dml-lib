@@ -7,8 +7,11 @@
  * PMD False Positives:
  * - CyclomaticComplexity: It is a library and we tried to put everything into ONE class
  * - CognitiveComplexity: It is a library and we tried to put everything into ONE class
+ * - ApexUnitTestClassShouldHaveRunAs: System.runAs is used to test fls and sharing modes
+ * - NcssMethodCount: Some methods are longer becasue of amount of assertions
+ * - NcssTypeCount: It is a library and we tried to put everything into ONE class
 **/
-@SuppressWarnings('PMD.CyclomaticComplexity,PMD.CognitiveComplexity')
+@SuppressWarnings('PMD.CyclomaticComplexity,PMD.CognitiveComplexity,PMD.ApexUnitTestClassShouldHaveRunAs,PMD.NcssMethodCount,PMD.NcssTypeCount')
 @IsTest
 private class DML_Test {
 
@@ -3524,11 +3527,6 @@ private class DML_Test {
                         .withRelationship(PricebookEntry.Product2Id, product)
                 );
 
-                OpportunityLineItem oppLineItem = new OpportunityLineItem(
-                    Quantity = 1,
-                    TotalPrice = 10
-                );
-
                 uow.toInsert(
                     DML.Record(new OpportunityLineItem(Quantity = 1, TotalPrice = 10))
                         .withRelationship(OpportunityLineItem.PricebookEntryId, pbe)
@@ -3613,6 +3611,7 @@ private class DML_Test {
         return account;
     }
 
+	@SuppressWarnings('PMD.AvoidNonRestrictiveQueries')
 	static List<Account> getAccounts() {
 		return [SELECT Id, Name FROM Account];
 	}

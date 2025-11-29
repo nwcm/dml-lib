@@ -13,8 +13,12 @@
  * - AvoidDebugStatements: Debug statements are used for debugging purposes
  * - OperationWithLimitsInLoop: DMLs are executed by SObject Type and the loop is through different types
  * - ApexCRUDViolation: DMLs are executed by User Mode or System Mode
-**/
-@SuppressWarnings('PMD.MethodNamingConventions,PMD.CyclomaticComplexity,PMD.CognitiveComplexity,PMD.ExcessivePublicCount,PMD.FieldDeclarationsShouldBeAtStart,PMD.AvoidDebugStatements,PMD.OperationWithLimitsInLoop,PMD.ApexCRUDViolation')
+ * - ExcessiveClassLength: The class is a library and we tried to put everything into ONE class
+ * - NcssTypeCount: The class is a library and we tried to put everything into ONE class
+ * - PropertyNamingConventions: Some properties are PascalCase to indicate that they are "constructors" of other internal classes
+ * - FieldNamingConventions: Some fields has not standard naming convention on purpose
+ **/
+@SuppressWarnings('PMD.MethodNamingConventions,PMD.CyclomaticComplexity,PMD.CognitiveComplexity,PMD.ExcessivePublicCount,PMD.FieldDeclarationsShouldBeAtStart,PMD.AvoidDebugStatements,PMD.OperationWithLimitsInLoop,PMD.ApexCRUDViolation,PMD.ExcessiveClassLength,PMD.NcssTypeCount,PMD.PropertyNamingConventions,PMD.FieldNamingConventions')
 public inherited sharing class DML implements Commitable {
 	public static Commitable Shared {
 		get {
@@ -710,7 +714,7 @@ public inherited sharing class DML implements Commitable {
 		private String dmlIdentifier = null;
 
 		public Configuration() {
-			this.options.optAllOrNone = this.allOrNone;
+			this.options.optAllOrNone = true;
 		}
 
 		public void accessMode(System.AccessLevel accessMode) {
@@ -769,17 +773,21 @@ public inherited sharing class DML implements Commitable {
 		}
 
 		public DmlOperation register(DML.Record record) {
-			this.validate(record);
-			
 			EnhancedRecord enhancedRecord = record.get();
 			SObjectType typeName = enhancedRecord.getSObjectType();
 
+			this.validate(record);
+			this.validateCustomExecutionOrder(typeName);
+
+			this.addNewRecordToProcess(typeName, enhancedRecord);
+			
+			return this;
+		}
+
+		private void validateCustomExecutionOrder(SObjectType typeName) {
 			if (!this.globalConfiguration.customExecutionOrder.isEmpty() && !this.globalConfiguration.customExecutionOrder.contains(typeName)) {
 				throw new DmlException('Only the following types can be registered: ' + this.globalConfiguration.customExecutionOrder);
 			}
-
-			this.addNewRecordToProcess(typeName, enhancedRecord);
-			return this;
 		}
 
 		private void addNewRecordToProcess(SObjectType typeName, EnhancedRecord enhancedRecord) {
@@ -800,17 +808,9 @@ public inherited sharing class DML implements Commitable {
 
 		public List<OperationResult> execute() {
 			if (!this.globalConfiguration.customExecutionOrder.isEmpty()) {
-				return this.processBasedOnCustomOrder();
+				return this.process(this.globalConfiguration.customExecutionOrder);
 			} 
 
-			return this.processBasedOnRegistrationOrder();
-		}
-
-		private List<OperationResult> processBasedOnCustomOrder() {
-			return this.process(this.globalConfiguration.customExecutionOrder);
-		}
-
-		private List<OperationResult> processBasedOnRegistrationOrder() {
 			return this.process(this.recordsProcessContainerByType.keySet());
 		}
 
@@ -828,13 +828,17 @@ public inherited sharing class DML implements Commitable {
 
 				List<RecordResult> recordResults;
 
-				if (dmlMock == null || !dmlMock.shouldBeMocked(this.getType(), objectTypeName)) {
-					recordResults = getAdapter().getStandardizedResults(this.executeDml(recordsToProcess), recordsToProcess);
-				} else {
+				if (dmlMock != null && dmlMock.shouldBeMocked(this.getType(), objectTypeName)) {
 					recordResults = this.getMockedRecordResults(recordsToProcess);
+				} else {
+					recordResults = getAdapter().getStandardizedResults(this.executeDml(recordsToProcess), recordsToProcess);
 				}
-				
-				operationResults.add(new OperationSummary(objectTypeName, this.getType()).setRecords(recordsToProcess).setRecordResults(recordResults));
+
+				operationResults.add(
+					new OperationSummary(objectTypeName, this.getType())
+						.setRecords(recordsToProcess)
+						.setRecordResults(recordResults)
+				);
 			}
 
 			return operationResults;
@@ -880,16 +884,6 @@ public inherited sharing class DML implements Commitable {
 			}
 
 			return System.Security.stripInaccessible(accessType, recordsToProcess).getRecords();
-		}
-		
-		public List<Id> getRecordIdsToProcess() {
-			List<Id> recordIdsToProcess = new List<Id>();
-
-			for (EnhancedRecord enhancedRecord : this.enhancedRecords) {
-				recordIdsToProcess.add(enhancedRecord.getRecordId());
-			}
-
-			return recordIdsToProcess;
 		}
 	}
 
@@ -1260,6 +1254,7 @@ public inherited sharing class DML implements Commitable {
 			return this;
 		}
 
+		@SuppressWarnings('PMD.AvoidBooleanMethodParameters')
 		public RecordSummary isSuccess(Boolean isSuccess) {
 			this.isSuccess = isSuccess;
 			return this;
