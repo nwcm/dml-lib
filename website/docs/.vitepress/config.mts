@@ -69,6 +69,13 @@ export default defineConfig({
           { text: 'Sharing Mode', link: '/configuration/sharing-mode' },
           { text: 'DmlOptions', link: '/configuration/dml-options' }
         ]
+      },
+      {
+        text: 'Architecture',
+        collapsed: true,
+        items: [
+          { text: 'Rollback', link: '/architecture/rollback' }
+        ]
       }
     ],
     footer: {
