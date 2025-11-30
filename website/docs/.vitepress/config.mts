@@ -71,9 +71,16 @@ export default defineConfig({
         ]
       }
     ],
-
+    footer: {
+      message: 'Released under the MIT License.',
+      copyright: 'Copyright © 2025-present Beyond The Cloud Sp. z o.o.'
+    },
     socialLinks: [
-      { icon: 'github', link: 'https://github.com/beyond-the-cloud-dev/dml-lib' }
+      { icon: 'github', link: 'https://github.com/beyond-the-cloud-dev/dml-lib' },
+      {
+        icon: 'linkedin',
+        link: 'https://www.linkedin.com/company/beyondtheclouddev'
+      }
     ]
   }
 })
