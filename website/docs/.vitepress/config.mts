@@ -33,7 +33,8 @@ export default defineConfig({
       {
         text: 'Docs',
         items: [
-          { text: 'Introduction', link: '/introduction' }
+          { text: 'Introduction', link: '/introduction' },
+          { text: 'Installation', link: '/installation' }
         ]
       },
       {

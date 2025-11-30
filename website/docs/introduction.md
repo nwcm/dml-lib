@@ -24,13 +24,3 @@ new DML()
 
 // contact.AccountId is automatically set to account.Id
 ```
-
-## Installation
-
-Deploy the `DML.cls` class to your Salesforce org.
-
-**Deploy via SFDX:**
-
-```bash
-sf project deploy start --source-dir force-app/main/default/classes/DML.cls
-```
