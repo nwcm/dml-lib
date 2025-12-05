@@ -573,8 +573,6 @@ public inherited sharing class DML implements Commitable {
 			dmlIdentifierToResult.put(this.configuration.dmlIdentifier, result);
 
 			this.hook?.after(result);
-		} catch (Exception e) {
-			throw e;
 		} finally {
 			this.reset();
 		}
