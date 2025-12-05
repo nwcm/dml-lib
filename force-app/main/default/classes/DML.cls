@@ -189,7 +189,7 @@ public inherited sharing class DML implements Commitable {
 		List<String> fields();
 	}
 
-	// Mockking
+	// Mocking
 
 	@TestVisible
 	private static DML.Mockable mock(String dmlIdentifier) {
@@ -236,7 +236,7 @@ public inherited sharing class DML implements Commitable {
 
 	private Configuration configuration = new Configuration();
 
-	public enum OperationType { INSERT_DML, UPDATE_DML, UPSERT_DML, DELETE_DML, UNDELETE_DML, HARD_DELETE_DML, MERGE_DML, PUBLISH_DML }
+	public enum OperationType { INSERT_DML, UPDATE_DML, UPSERT_DML, DELETE_DML, UNDELETE_DML, PUBLISH_DML }
 
 	private Map<OperationType, DmlOperation> operationsByType = new Map<OperationType, DmlOperation>();
 
@@ -711,7 +711,6 @@ public inherited sharing class DML implements Commitable {
 	private class Configuration {
 		private List<SObjectType> customExecutionOrder = new List<SObjectType>();
 		private System.AccessLevel accessMode = System.AccessLevel.USER_MODE;
-		private System.AccessType accessType = null;
 		private Database.DmlOptions options = new Database.DMLOptions();
 		private DmlSharing sharingExecutor = new InheritedSharing();
 		private Boolean allOrNone = true;
@@ -723,10 +722,6 @@ public inherited sharing class DML implements Commitable {
 
 		public void accessMode(System.AccessLevel accessMode) {
 			this.accessMode = accessMode;
-		}
-
-		public void stripInaccessible(System.AccessType type) {
-			this.accessType = type;
 		}
 
 		public void withSharing() {
@@ -759,7 +754,6 @@ public inherited sharing class DML implements Commitable {
 			System.debug(LoggingLevel.ERROR, 
 				'\n\n============ DML Configuration ============' +
 				'\nCustom Execution Order: ' + this.customExecutionOrder +
-				'\nAccess OperationType: ' + this.accessType +
 				'\nOptions: ' + JSON.serializePretty(this.options) +
 				'\nSharing Executor: ' + String.valueOf(this.sharingExecutor).split(':')[0] +
 				'\nAll Or None: ' + this.allOrNone +
@@ -843,7 +837,7 @@ public inherited sharing class DML implements Commitable {
 					continue;
 				}
 
-				List<SObject> recordsToProcess = this.recordsProcessContainerByType.get(objectTypeName).getRecordsToProcess(this.globalConfiguration.accessType);
+				List<SObject> recordsToProcess = this.recordsProcessContainerByType.get(objectTypeName).getRecordsToProcess();
 
 				DmlMock dmlMock = dmlIdentifierToMock.get(this.globalConfiguration.dmlIdentifier);
 
@@ -892,7 +886,7 @@ public inherited sharing class DML implements Commitable {
 			this.enhancedRecords.add(enhancedRecord);
 		}
 
-		public List<SObject> getRecordsToProcess(System.AccessType accessType) { 
+		public List<SObject> getRecordsToProcess() { 
 			List<SObject> recordsToProcess = new List<SObject>();
 
 			for (EnhancedRecord enhancedRecord : this.enhancedRecords) {
@@ -900,11 +894,7 @@ public inherited sharing class DML implements Commitable {
 				recordsToProcess.add(enhancedRecord.getRecord());
 			}
 
-			if (accessType == null) {
-				return recordsToProcess;
-			}
-
-			return System.Security.stripInaccessible(accessType, recordsToProcess).getRecords();
+			return recordsToProcess;
 		}
 	}
 
@@ -1154,6 +1144,9 @@ public inherited sharing class DML implements Commitable {
 		public List<RecordResult> recordResults = new List<RecordResult>();
 		public List<SObject> records = new List<SObject>();
 
+		private List<SObject> cachedSuccesses;
+		private List<SObject> cachedFailures;
+
 		public OperationSummary(SObjectType objectType, OperationType type) {
 			this.objectType = objectType;
 			this.type = type;
@@ -1178,7 +1171,7 @@ public inherited sharing class DML implements Commitable {
 		}
 
 		public Boolean hasFailures() {
-			return this.failures().size() > 0;
+			return !this.failures().isEmpty();
 		}
 
 		public List<Error> errors() {
@@ -1196,27 +1189,35 @@ public inherited sharing class DML implements Commitable {
 		}
 
 		public List<SObject> successes() {
-			List<SObject> successes = new List<SObject>();
-			
+			if (this.cachedSuccesses != null) {
+				return this.cachedSuccesses;
+			}
+
+			this.cachedSuccesses = new List<SObject>();
+
 			for (RecordResult recordResult : this.recordResults) {
 				if (recordResult.isSuccess()) {
-					successes.add(recordResult.record());
+					this.cachedSuccesses.add(recordResult.record());
 				}
 			}
 
-			return successes;
+			return this.cachedSuccesses;
 		}
 
 		public List<SObject> failures() {
-			List<SObject> failures = new List<SObject>();
+			if (this.cachedFailures != null) {
+				return this.cachedFailures;
+			}
+
+			this.cachedFailures = new List<SObject>();
 			
 			for (RecordResult recordResult : this.recordResults) {
 				if (!recordResult.isSuccess()) {
-					failures.add(recordResult.record());
+					this.cachedFailures.add(recordResult.record());
 				}
 			}
 
-			return failures;
+			return this.cachedFailures;
 		}
 
 		public List<RecordResult> recordResults() {
@@ -1613,21 +1614,12 @@ public inherited sharing class DML implements Commitable {
 	}
 
 	public class RandomIdGenerator {
-		private final String RANDOM_STRING_CHARACTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqrstuvwxyz';
-
 		public Id get(SObjectType objectType) {
 			return get(objectType.getDescribe().getKeyPrefix());
 		}
 
 		public Id get(String prefix) {
-			String randomPart = '';
-
-			while (randomPart.length() < 8) {
-				Integer idx = Math.mod(Math.abs(Crypto.getRandomInteger()), RANDOM_STRING_CHARACTERS.length());
-				randomPart += RANDOM_STRING_CHARACTERS.substring(idx, idx + 1);
-			}
-
-			return Id.valueOf(prefix + '0000' + randomPart);
+			return Id.valueOf(prefix + '0'.repeat(12 - prefix.length()) + String.valueOf(Math.abs(Crypto.getRandomInteger())).left(3));
 		}
 	}
 }
