@@ -1,5 +1,21 @@
 # Installation
 
+## Install via Unlocked Package
+
+<!--
+ sf package version create --package "DML Lib" --target-dev-hub beyondthecloud-prod --installation-key-bypass --wait 30 --code-coverage
+
+ sf package version promote --package "DML Lib@1.9.0-1"  --target-dev-hub beyondthecloud-prod
+--> 
+
+Install the SOQL Lib unlocked package with `btcdev` namespace to your Salesforce environment:
+
+`/packaging/installPackage.apexp?p0=04tP6000002AvdNIAS`
+
+[Install on Sandbox](https://test.salesforce.com/packaging/installPackage.apexp?p0=04tP6000002AvdNIAS)
+
+[Install on Production](https://login.salesforce.com/packaging/installPackage.apexp?p0=04tP6000002AvdNIAS)
+
 ## Install via Unmanaged Package
 
 Install the DML Lib unmanaged package without namespace to your Salesforce environment:
@@ -9,6 +25,15 @@ Install the DML Lib unmanaged package without namespace to your Salesforce envir
 [Install on Sandbox](https://test.salesforce.com/packaging/installPackage.apexp?p0=04tP60000029Hmr)
 
 [Install on Production](https://login.salesforce.com/packaging/installPackage.apexp?p0=04tP60000029Hmr)
+
+## Deploy via Button
+
+Click the button below to deploy DML Lib to your environment.
+
+<a href="https://githubsfdeploy.herokuapp.com?owner=beyond-the-cloud-dev&repo=dml-lib&ref=main">
+  <img alt="Deploy to Salesforce"
+       src="https://raw.githubusercontent.com/afawcett/githubsfdeploy/master/deploy.png">
+</a>
 
 ## Copy and Deploy
 
