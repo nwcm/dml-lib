@@ -28,7 +28,9 @@ export default defineConfig({
       { text: 'Home', link: '/' },
       { text: 'Documentation', link: '/introduction' }
     ],
-
+    search: {
+      provider: 'local'
+    },
     sidebar: [
       {
         text: 'Docs',
@@ -46,6 +48,7 @@ export default defineConfig({
           { text: 'Upsert', link: '/dml/upsert' },
           { text: 'Delete', link: '/dml/delete' },
           { text: 'Undelete', link: '/dml/undelete' },
+          { text: 'Merge', link: '/dml/merge' },
           { text: 'Publish', link: '/dml/publish' },
           { text: 'Result', link: '/result' }
         ]
@@ -54,11 +57,13 @@ export default defineConfig({
         text: 'Mocking',
         collapsed: true,
         items: [
+          { text: 'Introduction', link: '/mocking/mocking' },
           { text: 'Insert', link: '/mocking/insert' },
           { text: 'Update', link: '/mocking/update' },
           { text: 'Upsert', link: '/mocking/upsert' },
           { text: 'Delete', link: '/mocking/delete' },
           { text: 'Undelete', link: '/mocking/undelete' },
+          { text: 'Merge', link: '/mocking/merge' },
           { text: 'Publish', link: '/mocking/publish' }
         ]
       },
@@ -75,7 +80,8 @@ export default defineConfig({
         text: 'Architecture',
         collapsed: true,
         items: [
-          { text: 'Rollback', link: '/architecture/rollback' }
+          { text: 'Rollback', link: '/architecture/rollback' },
+          { text: 'Registration', link: '/architecture/registration' }
         ]
       }
     ],

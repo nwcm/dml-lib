@@ -4,6 +4,7 @@
 - [x] Fluent Bulk records update without the loop e.g.
     - [x] DML.Records(opportunities).with(Opportunity.Status, 'Closed Won') — loop-free builder that batches field patches, applies FLS (per mode), then registers the op.
 - [ ] Bulk DMLs — group by SObjectType and operation; execute in chunked batches (default 200) to minimize statements and respect limits.
+- [ ] when the same record is added with the same id, avoid duplication, apply for update and upser
 - [ ] Savepoint + rollback — wrap commitWork() in a savepoint; 
     - [x] on error rollback everything;
     - [ ] clear internal state afterward.
@@ -21,7 +22,7 @@
     - [x] with sharing
     - [x] without sharing
     - [ ] Sharing mode configurable per operation (?)
-- [ ] Relationships
+- [x] Relationships
     - [x] Deferred relationship resolution — resolve lookups just-in-time during commit (like fflib), not at registration time.
     - [x] Automatic dependency ordering — parents insert before children; deletes child-first; derive order from relationships if not explicit.
 - [ ] Preview mode or debug mode (?) - dry-run uow.preview() shows per-type op counts, fields to mutate, effective chunk size/allOrNone/security mode, and pending relationships; no DML.
@@ -96,18 +97,18 @@ class UowResult {
 }
 ```
 - [x] discardWork() — clear all pending operations without committing.
-- [ ] Clear internal state after commitWork() — prevent re-commit of same operations.
+- [x] Clear internal state after commitWork() — prevent re-commit of same operations.
 - [ ] Query operations — query(), countQuery(), getQueryLocator(), getCursor() with same access/sharing mode.
 - [ ] Connector to SOQL Lib — inject selectors for reads; honor chosen sharing mode.
-- [ ] Dedupling registration — when records with the same Id are registered and modify the same field: policy LAST_WINS | THROW; track warnings when deduping occurs.
+- [x] Dedupling registration — when records with the same Id are registered and modify the same field: policy LAST_WINS | THROW; track warnings when deduping occurs.
 - [ ] Observability hooks — uow.withLogger(ILogger) to emit timings, limits, retries, per-op summaries; keep lightweight to avoid CPU spikes.
 - [ ] DML optimization
     - [ ] Minimize DML statements — batch same-type operations.
-    - [ ] Build dependency graph — derive parent/child order from registered relationships.
+    - [x] Build dependency graph — derive parent/child order from registered relationships.
 - [x] insertImmediately, updateImmediately, etc.
 - [ ] Email integration — toSendEmail(Messaging.Email) sent during commit.
 - [ ] Custom work (IDoWork) — registerWork(DML.Work) for custom logic during commit.
-- [ ] Lifecycle hooks — onCommitWorkStarting(), onDMLFinished(), onCommitWorkFinished(success) for subclass overrides.
+
 ---
 
 ```java
@@ -235,13 +236,35 @@ toHardDelete(List<SObject> records);
 
 		Account account1 = new Account(Name = 'Account 1');
 		Contact contact1 = new Contact(LastName = 'Contact 1');
-		Opportunity opportunity1 = new Opportunity(Name = 'Opportunity 1');
+		Opportunity opportunity1 = new Opportunity(Name = 'Opportunity 1', StageName = 'Discovery', CloseDate = System.today());
 
 		new DML()
-			.toInsert(account1)
-			.toInsert(DML.Record(contact1).withRelationship(Contact.AccountId, account1))
 			.toInsert(DML.Record(opportunity1)
 				.withRelationship(Opportunity.AccountId, account1)
 				.withRelationship(Opportunity.Contact__c, contact1)
 			)
+			.toInsert(DML.Record(contact1).withRelationship(Contact.AccountId, account1))
+			.toInsert(DML.Record(account1).withRelationship(Account.Contact__c, contact1))
 			.commitWork();
+
+
+--- 
+
+Status | Priority | Feature | Effort | Impact |
+|------|----------|---------|--------|--------|
+| [x]  | 🔴 Critical | Deferred Relationship Resolution | High | Very High |
+| [x]  | 🔴 Critical | Automatic Dependency Ordering | High | Very High |
+| [x]  | 🔴 Critical | Merge Operations | Medium | High |
+| [x]  | 🔴 Critical | Hard Delete | Low | Medium |
+| [x]  | 🔴 Critical | Discard Work | Low | Medium |
+| [x]  | 🟡 Important | Upsert with External ID | Medium | High |
+| [ ]  | 🟡 Important | Lead Conversion | Medium | Medium |
+| [ ]  | 🟡 Important | Per-Operation Overrides | High | High |
+| [ ]  | 🟡 Important | Email Integration | Medium | Medium |
+| [ ]  | 🟡 Important | Custom Work (IDoWork) | Low | Medium |
+| [x]  | 🟢 Nice | Dedupling registration | Medium | Medium |
+| [ ]  | 🟢 Nice | Better Mock API with Errors | Medium | Medium |
+| [ ]  | 🟢 Nice | Retry Strategy | High | Medium |
+| [ ]  | 🟢 Nice | Chunk Size | Medium | Medium |
+| [ ]  | 🟢 Nice | Query Integration | Medium | Low |
+| [x]  | 🟢 Nice | Lifecycle Hooks | Medium | Low |
