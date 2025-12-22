@@ -54,6 +54,7 @@ $RECYCLE.BIN/
 
 #Private keys
 *.key
-website/docs/.vitepress/dist
-website/docs/.vitepress/cache
-drafts
+
+# VitePress cache
+website/.vitepress/cache/
+website/.vitepress/dist/

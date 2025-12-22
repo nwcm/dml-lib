@@ -1,8 +1,8 @@
 <div align="center">
   <a href="https://dml.beyondthecloud.dev">
     <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="./website/docs/public/DML-lib-logo.png">
-      <img alt="SOQL Lib logo" src="./website/docs/public/DML-lib-logo.png" height="98">
+      <source media="(prefers-color-scheme: dark)" srcset="./website/public/logo.png">
+      <img alt="DML Lib logo" src="./website/public/logo.png" height="98">
     </picture>
   </a>
   <h1>DML Lib</h1>
