@@ -264,6 +264,7 @@ Status | Priority | Feature | Effort | Impact |
 | [ ]  | 🟡 Important | Custom Work (IDoWork) | Low | Medium |
 | [x]  | 🟢 Nice | Dedupling registration | Medium | Medium |
 | [ ]  | 🟢 Nice | Better Mock API with Errors | Medium | Medium |
+| [ ]  | 🟢 Nice | Add operation hashCode to OperationResult | Medium | Medium |
 | [ ]  | 🟢 Nice | Retry Strategy | High | Medium |
 | [ ]  | 🟢 Nice | Chunk Size | Medium | Medium |
 | [ ]  | 🟢 Nice | Query Integration | Medium | Low |
