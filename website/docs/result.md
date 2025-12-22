@@ -96,10 +96,10 @@ DML.Result result = new DML()
     .toUpdate(contacts)
     .commitWork();
 
-for (DML.OperationResult opResult : result.all()) {
-    System.debug('Operation: ' + opResult.operationType());
-    System.debug('Object: ' + opResult.objectType());
-    System.debug('Has Failures: ' + opResult.hasFailures());
+for (DML.OperationResult operationResult : result.all()) {
+    System.debug('Operation: ' + operationResult.operationType());
+    System.debug('Object: ' + operationResult.objectType());
+    System.debug('Has Failures: ' + operationResult.hasFailures());
 }
 ```
 
@@ -182,20 +182,20 @@ DML.Result result = new DML()
     .toInsert(accounts)
     .commitWork();
 
-DML.OperationResult opResult = result.insertsOf(Account.SObjectType);
+DML.OperationResult operationResult = result.insertsOf(Account.SObjectType);
 
 // Operation metadata
-Assert.areEqual(DML.OperationType.INSERT_DML, opResult.operationType());
-Assert.areEqual(Account.SObjectType, opResult.objectType());
+Assert.areEqual(DML.OperationType.INSERT_DML, operationResult.operationType());
+Assert.areEqual(Account.SObjectType, operationResult.objectType());
 
 // Check for failures
-if (opResult.hasFailures()) {
-    List<SObject> failedRecords = opResult.failures();
-    List<DML.Error> allErrors = opResult.errors();
+if (operationResult.hasFailures()) {
+    List<SObject> failedRecords = operationResult.failures();
+    List<DML.Error> allErrors = operationResult.errors();
 }
 
 // Get successful records
-List<SObject> successfulRecords = opResult.successes();
+List<SObject> successfulRecords = operationResult.successes();
 ```
 
 ## RecordResult Interface
@@ -221,9 +221,9 @@ DML.Result result = new DML()
     .allowPartialSuccess()
     .commitWork();
 
-DML.OperationResult opResult = result.insertsOf(Account.SObjectType);
+DML.OperationResult operationResult = result.insertsOf(Account.SObjectType);
 
-for (DML.RecordResult recordResult : opResult.recordResults()) {
+for (DML.RecordResult recordResult : operationResult.recordResults()) {
     if (recordResult.isSuccess()) {
         System.debug('Record inserted with Id: ' + recordResult.id());
         System.debug('Record: ' + recordResult.record());
@@ -258,8 +258,8 @@ DML.Result result = new DML()
     .allowPartialSuccess()
     .commitWork();
 
-for (DML.OperationResult opResult : result.all()) {
-    for (DML.Error error : opResult.errors()) {
+for (DML.OperationResult operationResult : result.all()) {
+    for (DML.Error error : operationResult.errors()) {
         System.debug('Error Message: ' + error.message());
         System.debug('Status Code: ' + error.statusCode());
         System.debug('Fields: ' + error.fields());
@@ -296,16 +296,16 @@ DML.Result result = new DML()
 // Verify result
 Assert.areEqual(1, result.inserts().size());
 
-DML.OperationResult opResult = result.insertsOf(Account.SObjectType);
-Assert.areEqual(1, opResult.records().size());
-Assert.areEqual(1, opResult.successes().size());
-Assert.areEqual(0, opResult.failures().size());
-Assert.isFalse(opResult.hasFailures());
-Assert.areEqual(DML.OperationType.INSERT_DML, opResult.operationType());
-Assert.areEqual(Account.SObjectType, opResult.objectType());
+DML.OperationResult operationResult = result.insertsOf(Account.SObjectType);
+Assert.areEqual(1, operationResult.records().size());
+Assert.areEqual(1, operationResult.successes().size());
+Assert.areEqual(0, operationResult.failures().size());
+Assert.isFalse(operationResult.hasFailures());
+Assert.areEqual(DML.OperationType.INSERT_DML, operationResult.operationType());
+Assert.areEqual(Account.SObjectType, operationResult.objectType());
 
 // Check record result
-DML.RecordResult recordResult = opResult.recordResults()[0];
+DML.RecordResult recordResult = operationResult.recordResults()[0];
 Assert.isTrue(recordResult.isSuccess());
 Assert.isNotNull(recordResult.id());
 Assert.areEqual(account.Id, recordResult.id());
@@ -325,16 +325,16 @@ DML.Result result = new DML()
     .allowPartialSuccess()
     .commitWork();
 
-DML.OperationResult opResult = result.insertsOf(Account.SObjectType);
+DML.OperationResult operationResult = result.insertsOf(Account.SObjectType);
 
 // Check counts
-Assert.areEqual(3, opResult.records().size());
-Assert.areEqual(2, opResult.successes().size());
-Assert.areEqual(1, opResult.failures().size());
-Assert.isTrue(opResult.hasFailures());
+Assert.areEqual(3, operationResult.records().size());
+Assert.areEqual(2, operationResult.successes().size());
+Assert.areEqual(1, operationResult.failures().size());
+Assert.isTrue(operationResult.hasFailures());
 
 // Process individual results
-for (DML.RecordResult rr : opResult.recordResults()) {
+for (DML.RecordResult rr : operationResult.recordResults()) {
     if (rr.isSuccess()) {
         System.debug('Record succeeded with Id: ' + rr.id());
     } else {
@@ -449,10 +449,10 @@ DML.Result result = new DML()
     .allowPartialSuccess()
     .commitWork();
 
-for (DML.OperationResult opResult : result.all()) {
-    if (opResult.hasFailures()) {
+for (DML.OperationResult operationResult : result.all()) {
+    if (operationResult.hasFailures()) {
         // Handle failures appropriately
-        for (DML.Error error : opResult.errors()) {
+        for (DML.Error error : operationResult.errors()) {
             System.debug('Error: ' + error.message());
         }
     }
@@ -471,13 +471,13 @@ static void testAccountCreation() {
         .commitWork();
     
     // Use result for comprehensive assertions
-    DML.OperationResult opResult = result.insertsOf(Account.SObjectType);
+    DML.OperationResult operationResult = result.insertsOf(Account.SObjectType);
     
-    Assert.areEqual(1, opResult.records().size());
-    Assert.areEqual(1, opResult.successes().size());
-    Assert.areEqual(0, opResult.failures().size());
-    Assert.isFalse(opResult.hasFailures());
-    Assert.areEqual(DML.OperationType.INSERT_DML, opResult.operationType());
-    Assert.isNotNull(opResult.recordResults()[0].id());
+    Assert.areEqual(1, operationResult.records().size());
+    Assert.areEqual(1, operationResult.successes().size());
+    Assert.areEqual(0, operationResult.failures().size());
+    Assert.isFalse(operationResult.hasFailures());
+    Assert.areEqual(DML.OperationType.INSERT_DML, operationResult.operationType());
+    Assert.isNotNull(operationResult.recordResults()[0].id());
 }
 ```
