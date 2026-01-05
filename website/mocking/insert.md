@@ -215,7 +215,8 @@ static void shouldAccessRecordResults() {
 Simulate DML exceptions for insert operations without touching the database.
 
 ::: tip allowPartialSuccess
-When `allowPartialSuccess()` is used, exceptions are **not thrown**. Instead, failures are recorded in the `Result` object. Use `hasFailures()` and `recordResults()` to check for errors.
+When `allowPartialSuccess()` is used, exceptions are **not thrown**. Instead, failures are recorded in the `Result` object. 
+Use `hasFailures()` and `recordResults()` to check for errors.
 :::
 
 ### exceptionOnInserts
