@@ -1167,6 +1167,7 @@ private class DML_Test {
 			account1.Name = 'Updated Test Account';
 			opportunity1.Name = 'Updated Test Opportunity';
 			lead1.FirstName = 'Updated Test';
+			lead1.Company = 'Updated Test Lead 1';
 
 			DML.Result result = new DML()
 				.toUpdate(account1)
@@ -6200,7 +6201,7 @@ private class DML_Test {
 	}
 
 	static Lead getLead(Integer index) {
-		return new Lead(FirstName = 'Test ' + index, LastName = 'Lead ' + index, Company = 'Test Company ' + index);
+		return new Lead(FirstName = 'Test ' + index, LastName = 'Lead ' + index, Company = 'Test ' + index + ' Lead ' + index);
 	}
 
 	static Case getCase(Integer index) {
