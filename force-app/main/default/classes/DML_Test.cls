@@ -547,6 +547,8 @@ private class DML_Test {
 		Assert.areEqual(1, result.insertsOf(Account.SObjectType).recordResults().size(), 'Inserted operation result should contain the inserted record results.');
 		Assert.isTrue(result.insertsOf(Account.SObjectType).recordResults()[0].isSuccess(), 'Inserted operation result should contain a successful record result.');
 		Assert.isNotNull(result.insertsOf(Account.SObjectType).recordResults()[0].id(), 'Inserted operation result should contain a mocked record Id.');
+		Assert.isNotNull(result.insertsOf(Account.SObjectType).recordResults()[0].record(), 'Inserted operation record result should contain the record.');
+		Assert.areEqual(account1.Id, result.insertsOf(Account.SObjectType).recordResults()[0].record().Id, 'Record result should return the mocked record.');
 		Assert.isNotNull(account1.Id, 'Account should have mocked Id.');
 	}
 

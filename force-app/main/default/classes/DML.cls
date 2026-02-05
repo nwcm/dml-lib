@@ -1246,7 +1246,7 @@ global inherited sharing class DML implements Commitable {
 
 		protected override RecordSummary executeMockedDml(SObject record) {
 			record.put('Id', randomIdGenerator.get(record.getSObjectType()));
-			return new RecordSummary().isSuccess(true).recordId(record.Id);
+			return new RecordSummary().isSuccess(true).recordId(record.Id).record(record);
 		}
 	}
 
@@ -1287,7 +1287,7 @@ global inherited sharing class DML implements Commitable {
 			if (record.Id == null) {
 				record.put('Id', randomIdGenerator.get(record.getSObjectType()));
 			}
-			return new RecordSummary().isSuccess(true).recordId(record.Id);
+			return new RecordSummary().isSuccess(true).recordId(record.Id).record(record);
 		}
 	}
 
@@ -1315,7 +1315,7 @@ global inherited sharing class DML implements Commitable {
 		}
 
 		protected override RecordSummary executeMockedDml(SObject record) {
-			return new RecordSummary().isSuccess(true).recordId(record.Id);
+			return new RecordSummary().isSuccess(true).recordId(record.Id).record(record);
 		}
 	}
 
@@ -1351,7 +1351,7 @@ global inherited sharing class DML implements Commitable {
 		}
 
 		protected override RecordSummary executeMockedDml(SObject record) {
-			return new RecordSummary().isSuccess(true).recordId(record.Id);
+			return new RecordSummary().isSuccess(true).recordId(record.Id).record(record);
 		}
 	}
 
@@ -1396,7 +1396,7 @@ global inherited sharing class DML implements Commitable {
 		}
 
 		protected override RecordSummary executeMockedDml(SObject record) {
-			return new RecordSummary().isSuccess(true).recordId(record.Id);
+			return new RecordSummary().isSuccess(true).recordId(record.Id).record(record);
 		}
 	}
 
@@ -1424,7 +1424,7 @@ global inherited sharing class DML implements Commitable {
 		}
 
 		protected override RecordSummary executeMockedDml(SObject record) {
-			return new RecordSummary().isSuccess(true).recordId(record.Id);
+			return new RecordSummary().isSuccess(true).recordId(record.Id).record(record);
 		}
 	}
 
@@ -1446,7 +1446,7 @@ global inherited sharing class DML implements Commitable {
 		}
 
 		protected override RecordSummary executeMockedDml(SObject record) {
-			return new RecordSummary().isSuccess(true).recordId(randomIdGenerator.get(record.getSObjectType()));
+			return new RecordSummary().isSuccess(true).recordId(randomIdGenerator.get(record.getSObjectType())).record(record);
 		}
 	}
 
@@ -1919,7 +1919,8 @@ global inherited sharing class DML implements Commitable {
 			for (SObject record : recordsToProcess) {
 				RecordSummary recordSummary = new RecordSummary()
 					.isSuccess(false)
-					.error(new RecordProcessingError().setMessage(errorMessage).setStatusCode(System.StatusCode.ALREADY_IN_PROCESS).setFields(new List<String>{ 'Id' }));
+					.error(new RecordProcessingError().setMessage(errorMessage).setStatusCode(System.StatusCode.ALREADY_IN_PROCESS).setFields(new List<String>{ 'Id' }))
+					.record(record);
 
 				recordResults.add(recordSummary);
 			}
