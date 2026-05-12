@@ -1,8 +1,8 @@
 {
   "packageDirectories": [
     {
-      "versionName": "ver 3.0.1",
-      "versionNumber": "3.0.1.NEXT",
+      "versionName": "ver 3.1.0",
+      "versionNumber": "3.1.0.NEXT",
       "path": "package",
       "default": false,
       "package": "DML Lib",
@@ -25,6 +25,7 @@
     "DML Lib@2.0.0-1": "04tP6000002CeRxIAK",
     "DML Lib@2.0.1-1": "04tP6000002Hi6kIAC",
     "DML Lib@2.0.2-1": "04tP6000002RD6TIAW",
-    "DML Lib@3.0.0-1": "04tP6000002RDBJIA4"
+    "DML Lib@3.0.0-1": "04tP6000002RDBJIA4",
+    "DML Lib@3.1.0-1": "04tP60000036moDIAQ"
   }
 }
