@@ -23,7 +23,7 @@
 @SuppressWarnings(
     'PMD.MethodNamingConventions,PMD.ApexDoc,PMD.CyclomaticComplexity,PMD.CognitiveComplexity,PMD.ExcessivePublicCount,PMD.FieldDeclarationsShouldBeAtStart,PMD.AvoidDebugStatements,PMD.OperationWithLimitsInLoop,PMD.ApexCRUDViolation,PMD.ExcessiveClassLength,PMD.NcssTypeCount,PMD.PropertyNamingConventions,PMD.FieldNamingConventions,PMD.AvoidGlobalModifier'
 )
-public inherited sharing class DML implements Commitable {
+public virtual inherited sharing class DML implements Commitable {
     public static Commitable Shared {
         get {
             if (Shared == null) {
@@ -302,35 +302,35 @@ public inherited sharing class DML implements Commitable {
 
     // Insert
 
-    public Commitable toInsert(SObject record) {
+    public virtual Commitable toInsert(SObject record) {
         return this.toInsert(Record(record));
     }
 
-    public Commitable toInsert(Record record) {
+    public virtual Commitable toInsert(Record record) {
         return this.registerInDependencyOrchestrator(this.getInsertStrategy(record.getSObjectType()), record);
     }
 
-    public Commitable toInsert(List<SObject> records) {
+    public virtual Commitable toInsert(List<SObject> records) {
         return this.toInsert(Records(records));
     }
 
-    public Commitable toInsert(Records records) {
+    public virtual Commitable toInsert(Records records) {
         return this.registerInDependencyOrchestrator(this.getInsertStrategy(records.getSObjectType()), records);
     }
 
-    public OperationResult insertImmediately(SObject record) {
+    public virtual OperationResult insertImmediately(SObject record) {
         return this.insertImmediately(Record(record));
     }
 
-    public OperationResult insertImmediately(Record record) {
+    public virtual OperationResult insertImmediately(Record record) {
         return this.executeImmediately(this.getInsertStrategy(record.getSObjectType()), record);
     }
 
-    public OperationResult insertImmediately(List<SObject> records) {
+    public virtual OperationResult insertImmediately(List<SObject> records) {
         return this.insertImmediately(Records(records));
     }
 
-    public OperationResult insertImmediately(Records records) {
+    public virtual OperationResult insertImmediately(Records records) {
         return this.executeImmediately(this.getInsertStrategy(records.getSObjectType()), records);
     }
 
@@ -340,35 +340,35 @@ public inherited sharing class DML implements Commitable {
 
     // Update
 
-    public Commitable toUpdate(SObject record) {
+    public virtual Commitable toUpdate(SObject record) {
         return this.toUpdate(Record(record));
     }
 
-    public Commitable toUpdate(Record record) {
+    public virtual Commitable toUpdate(Record record) {
         return this.registerInLinearOrchestrator(this.getUpdateStrategy(record.getSObjectType()), record);
     }
 
-    public Commitable toUpdate(List<SObject> records) {
+    public virtual Commitable toUpdate(List<SObject> records) {
         return this.toUpdate(Records(records));
     }
 
-    public Commitable toUpdate(Records records) {
+    public virtual Commitable toUpdate(Records records) {
         return this.registerInLinearOrchestrator(this.getUpdateStrategy(records.getSObjectType()), records);
     }
 
-    public OperationResult updateImmediately(SObject record) {
+    public virtual OperationResult updateImmediately(SObject record) {
         return this.updateImmediately(Record(record));
     }
 
-    public OperationResult updateImmediately(Record record) {
+    public virtual OperationResult updateImmediately(Record record) {
         return this.executeImmediately(this.getUpdateStrategy(record.getSObjectType()), record);
     }
 
-    public OperationResult updateImmediately(List<SObject> records) {
+    public virtual OperationResult updateImmediately(List<SObject> records) {
         return this.updateImmediately(Records(records));
     }
 
-    public OperationResult updateImmediately(Records records) {
+    public virtual OperationResult updateImmediately(Records records) {
         return this.executeImmediately(this.getUpdateStrategy(records.getSObjectType()), records);
     }
 
@@ -378,44 +378,44 @@ public inherited sharing class DML implements Commitable {
 
     // Upsert
 
-    public Commitable toUpsert(SObject record) {
+    public virtual Commitable toUpsert(SObject record) {
         return this.toUpsert(Record(record));
     }
 
-    public Commitable toUpsert(SObject record, SObjectField externalIdField) {
+    public virtual Commitable toUpsert(SObject record, SObjectField externalIdField) {
         return this.registerInDependencyOrchestrator(this.getUpsertStrategy(record.getSObjectType()).withExternalIdField(externalIdField), Record(record));
     }
 
-    public Commitable toUpsert(Record record) {
+    public virtual Commitable toUpsert(Record record) {
         return this.registerInDependencyOrchestrator(this.getUpsertStrategy(record.getSObjectType()), record);
     }
 
-    public Commitable toUpsert(List<SObject> records) {
+    public virtual Commitable toUpsert(List<SObject> records) {
         return this.toUpsert(Records(records));
     }
 
-    public Commitable toUpsert(List<SObject> records, SObjectField externalIdField) {
+    public virtual Commitable toUpsert(List<SObject> records, SObjectField externalIdField) {
         Records dmlRecords = Records(records);
         return this.registerInDependencyOrchestrator(this.getUpsertStrategy(dmlRecords.getSObjectType()).withExternalIdField(externalIdField), dmlRecords);
     }
 
-    public Commitable toUpsert(Records records) {
+    public virtual Commitable toUpsert(Records records) {
         return this.registerInDependencyOrchestrator(this.getUpsertStrategy(records.getSObjectType()), records);
     }
 
-    public OperationResult upsertImmediately(SObject record) {
+    public virtual OperationResult upsertImmediately(SObject record) {
         return this.upsertImmediately(Record(record));
     }
 
-    public OperationResult upsertImmediately(Record record) {
+    public virtual OperationResult upsertImmediately(Record record) {
         return this.executeImmediately(this.getUpsertStrategy(record.getSObjectType()), record);
     }
 
-    public OperationResult upsertImmediately(List<SObject> records) {
+    public virtual OperationResult upsertImmediately(List<SObject> records) {
         return this.upsertImmediately(Records(records));
     }
 
-    public OperationResult upsertImmediately(Records records) {
+    public virtual OperationResult upsertImmediately(Records records) {
         return this.executeImmediately(this.getUpsertStrategy(records.getSObjectType()), records);
     }
 
@@ -425,11 +425,11 @@ public inherited sharing class DML implements Commitable {
 
     // Delete
 
-    public Commitable toDelete(Id recordId) {
+    public virtual Commitable toDelete(Id recordId) {
         return this.toDelete(Record(recordId));
     }
 
-    public Commitable toDelete(SObject record) {
+    public virtual Commitable toDelete(SObject record) {
         return this.toDelete(Record(record));
     }
 
@@ -437,11 +437,11 @@ public inherited sharing class DML implements Commitable {
         return this.registerInLinearOrchestrator(this.getDeleteStrategy(record.getSObjectType()), record);
     }
 
-    public Commitable toDelete(Iterable<Id> recordIds) {
+    public virtual Commitable toDelete(Iterable<Id> recordIds) {
         return this.toDelete(Records(recordIds));
     }
 
-    public Commitable toDelete(List<SObject> records) {
+    public virtual Commitable toDelete(List<SObject> records) {
         return this.toDelete(Records(records));
     }
 
@@ -449,11 +449,11 @@ public inherited sharing class DML implements Commitable {
         return this.registerInLinearOrchestrator(this.getDeleteStrategy(records.getSObjectType()), records);
     }
 
-    public OperationResult deleteImmediately(Id recordId) {
+    public virtual OperationResult deleteImmediately(Id recordId) {
         return this.deleteImmediately(Record(recordId));
     }
 
-    public OperationResult deleteImmediately(SObject record) {
+    public virtual OperationResult deleteImmediately(SObject record) {
         return this.deleteImmediately(Record(record));
     }
 
@@ -461,11 +461,11 @@ public inherited sharing class DML implements Commitable {
         return this.executeImmediately(this.getDeleteStrategy(record.getSObjectType()), record);
     }
 
-    public OperationResult deleteImmediately(Iterable<Id> recordIds) {
+    public virtual OperationResult deleteImmediately(Iterable<Id> recordIds) {
         return this.deleteImmediately(Records(recordIds));
     }
 
-    public OperationResult deleteImmediately(List<SObject> records) {
+    public virtual OperationResult deleteImmediately(List<SObject> records) {
         return this.deleteImmediately(Records(records));
     }
 
@@ -479,33 +479,33 @@ public inherited sharing class DML implements Commitable {
 
     // Hard Delete
 
-    public Commitable toHardDelete(Id recordId) {
+    public virtual Commitable toHardDelete(Id recordId) {
         Record dmlRecord = Record(recordId);
         return this.registerInLinearOrchestrator(this.getDeleteStrategy(dmlRecord.getSObjectType()).withHardDelete(), dmlRecord);
     }
 
-    public Commitable toHardDelete(SObject record) {
+    public virtual Commitable toHardDelete(SObject record) {
         Record dmlRecord = Record(record);
         return this.registerInLinearOrchestrator(this.getDeleteStrategy(dmlRecord.getSObjectType()).withHardDelete(), dmlRecord);
     }
 
-    public Commitable toHardDelete(Iterable<Id> recordIds) {
+    public virtual Commitable toHardDelete(Iterable<Id> recordIds) {
         Records dmlRecords = Records(recordIds);
         return this.registerInLinearOrchestrator(this.getDeleteStrategy(dmlRecords.getSObjectType()).withHardDelete(), dmlRecords);
     }
 
-    public Commitable toHardDelete(List<SObject> records) {
+    public virtual Commitable toHardDelete(List<SObject> records) {
         Records dmlRecords = Records(records);
         return this.registerInLinearOrchestrator(this.getDeleteStrategy(dmlRecords.getSObjectType()).withHardDelete(), dmlRecords);
     }
 
     // Undelete
 
-    public Commitable toUndelete(Id recordId) {
+    public virtual Commitable toUndelete(Id recordId) {
         return this.toUndelete(Record(recordId));
     }
 
-    public Commitable toUndelete(SObject record) {
+    public virtual Commitable toUndelete(SObject record) {
         return this.toUndelete(Record(record));
     }
 
@@ -513,11 +513,11 @@ public inherited sharing class DML implements Commitable {
         return this.registerInLinearOrchestrator(this.getUndeleteStrategy(record.getSObjectType()), record);
     }
 
-    public Commitable toUndelete(Iterable<Id> recordIds) {
+    public virtual Commitable toUndelete(Iterable<Id> recordIds) {
         return this.toUndelete(Records(recordIds));
     }
 
-    public Commitable toUndelete(List<SObject> records) {
+    public virtual Commitable toUndelete(List<SObject> records) {
         return this.toUndelete(Records(records));
     }
 
@@ -525,11 +525,11 @@ public inherited sharing class DML implements Commitable {
         return this.registerInLinearOrchestrator(this.getUndeleteStrategy(records.getSObjectType()), records);
     }
 
-    public OperationResult undeleteImmediately(Id recordId) {
+    public virtual OperationResult undeleteImmediately(Id recordId) {
         return this.undeleteImmediately(Record(recordId));
     }
 
-    public OperationResult undeleteImmediately(SObject record) {
+    public virtual OperationResult undeleteImmediately(SObject record) {
         return this.undeleteImmediately(Record(record));
     }
 
@@ -537,11 +537,11 @@ public inherited sharing class DML implements Commitable {
         return this.executeImmediately(this.getUndeleteStrategy(record.getSObjectType()), record);
     }
 
-    public OperationResult undeleteImmediately(Iterable<Id> recordIds) {
+    public virtual OperationResult undeleteImmediately(Iterable<Id> recordIds) {
         return this.undeleteImmediately(Records(recordIds));
     }
 
-    public OperationResult undeleteImmediately(List<SObject> records) {
+    public virtual OperationResult undeleteImmediately(List<SObject> records) {
         return this.undeleteImmediately(Records(records));
     }
 
@@ -555,12 +555,12 @@ public inherited sharing class DML implements Commitable {
 
     // Merge
 
-    public Commitable toMerge(SObject mergeToRecord, SObject duplicatedRecord) {
+    public virtual Commitable toMerge(SObject mergeToRecord, SObject duplicatedRecord) {
         Record dmlMergeToRecord = Record(mergeToRecord);
         return this.toMerge(this.getMergeStrategy(dmlMergeToRecord.getSObjectType(), dmlMergeToRecord), Record(duplicatedRecord));
     }
 
-    public Commitable toMerge(SObject mergeToRecord, Id duplicatedRecordId) {
+    public virtual Commitable toMerge(SObject mergeToRecord, Id duplicatedRecordId) {
         Record dmlMergeToRecord = Record(mergeToRecord);
         return this.toMerge(this.getMergeStrategy(dmlMergeToRecord.getSObjectType(), dmlMergeToRecord), Record(duplicatedRecordId));
     }
@@ -569,12 +569,12 @@ public inherited sharing class DML implements Commitable {
         return this.registerInLinearOrchestrator(mergeStrategy, duplicatedRecord);
     }
 
-    public Commitable toMerge(SObject mergeToRecord, List<SObject> duplicateRecords) {
+    public virtual Commitable toMerge(SObject mergeToRecord, List<SObject> duplicateRecords) {
         Record dmlMergeToRecord = Record(mergeToRecord);
         return this.toMerge(this.getMergeStrategy(dmlMergeToRecord.getSObjectType(), dmlMergeToRecord), Records(duplicateRecords));
     }
 
-    public Commitable toMerge(SObject mergeToRecord, Iterable<Id> duplicatedRecordIds) {
+    public virtual Commitable toMerge(SObject mergeToRecord, Iterable<Id> duplicatedRecordIds) {
         Record dmlMergeToRecord = Record(mergeToRecord);
         return this.toMerge(this.getMergeStrategy(dmlMergeToRecord.getSObjectType(), dmlMergeToRecord), Records(duplicatedRecordIds));
     }
@@ -589,22 +589,22 @@ public inherited sharing class DML implements Commitable {
 
     // Platform Event
 
-    public Commitable toPublish(SObject record) {
+    public virtual Commitable toPublish(SObject record) {
         Record dmlRecord = Record(record);
         return this.registerInLinearOrchestrator(this.getPlatformEventStrategy(dmlRecord.getSObjectType()), dmlRecord);
     }
 
-    public Commitable toPublish(List<SObject> records) {
+    public virtual Commitable toPublish(List<SObject> records) {
         Records dmlRecords = Records(records);
         return this.registerInLinearOrchestrator(this.getPlatformEventStrategy(dmlRecords.getSObjectType()), dmlRecords);
     }
 
-    public OperationResult publishImmediately(SObject record) {
+    public virtual OperationResult publishImmediately(SObject record) {
         Record dmlRecord = Record(record);
         return this.executeImmediately(this.getPlatformEventStrategy(dmlRecord.getSObjectType()), dmlRecord);
     }
 
-    public OperationResult publishImmediately(List<SObject> records) {
+    public virtual OperationResult publishImmediately(List<SObject> records) {
         Records dmlRecords = Records(records);
         return this.executeImmediately(this.getPlatformEventStrategy(dmlRecords.getSObjectType()), dmlRecords);
     }
@@ -655,7 +655,7 @@ public inherited sharing class DML implements Commitable {
 
     // Identifier
 
-    public Commitable identifier(String dmlIdentifier) {
+    public virtual Commitable identifier(String dmlIdentifier) {
         this.configuration.identifier(dmlIdentifier);
         return this;
     }
@@ -668,11 +668,11 @@ public inherited sharing class DML implements Commitable {
 
     // Field Level Security
 
-    public Commitable userMode() {
+    public virtual Commitable userMode() {
         return this.setAccessMode(System.AccessLevel.USER_MODE);
     }
 
-    public Commitable systemMode() {
+    public virtual Commitable systemMode() {
         return this.setAccessMode(System.AccessLevel.SYSTEM_MODE);
     }
 
@@ -683,46 +683,46 @@ public inherited sharing class DML implements Commitable {
 
     // Sharing Mode
 
-    public Commitable withSharing() {
+    public virtual Commitable withSharing() {
         this.configuration.withSharing();
         return this;
     }
 
-    public Commitable withoutSharing() {
+    public virtual Commitable withoutSharing() {
         this.configuration.withoutSharing();
         return this;
     }
 
     // Other configs
 
-    public Commitable allowPartialSuccess() {
+    public virtual Commitable allowPartialSuccess() {
         this.configuration.allowPartialSuccess();
         return this;
     }
 
-    public Commitable skipDuplicateRules() {
+    public virtual Commitable skipDuplicateRules() {
         this.configuration.skipDuplicateRules();
         return this;
     }
 
-    public Commitable combineOnDuplicate() {
+    public virtual Commitable combineOnDuplicate() {
         this.configuration.combineOnDuplicate();
         return this;
     }
 
-    public Commitable options(Database.DmlOptions options) {
+    public virtual Commitable options(Database.DmlOptions options) {
         this.configuration.options(options);
         return this;
     }
 
-    public Commitable discardWork() {
+    public virtual Commitable discardWork() {
         this.reset();
         return this;
     }
 
     // Hooks
 
-    public Commitable commitHook(Hook callback) {
+    public virtual Commitable commitHook(Hook callback) {
         this.hook = callback;
         return this;
     }
@@ -1043,31 +1043,31 @@ public inherited sharing class DML implements Commitable {
             return this.getOperationResults(OperationType.PUBLISH_DML);
         }
 
-        public OperationResult insertsOf(SObjectType objectType) {
+        public virtual OperationResult insertsOf(SObjectType objectType) {
             return this.getOperationResult(OperationType.INSERT_DML, objectType);
         }
 
-        public OperationResult updatesOf(SObjectType objectType) {
+        public virtual OperationResult updatesOf(SObjectType objectType) {
             return this.getOperationResult(OperationType.UPDATE_DML, objectType);
         }
 
-        public OperationResult upsertsOf(SObjectType objectType) {
+        public virtual OperationResult upsertsOf(SObjectType objectType) {
             return this.getOperationResult(OperationType.UPSERT_DML, objectType);
         }
 
-        public OperationResult deletesOf(SObjectType objectType) {
+        public virtual OperationResult deletesOf(SObjectType objectType) {
             return this.getOperationResult(OperationType.DELETE_DML, objectType);
         }
 
-        public OperationResult undeletesOf(SObjectType objectType) {
+        public virtual OperationResult undeletesOf(SObjectType objectType) {
             return this.getOperationResult(OperationType.UNDELETE_DML, objectType);
         }
 
-        public OperationResult mergesOf(SObjectType objectType) {
+        public virtual OperationResult mergesOf(SObjectType objectType) {
             return this.getOperationResult(OperationType.MERGE_DML, objectType);
         }
 
-        public OperationResult eventsOf(SObjectType objectType) {
+        public virtual OperationResult eventsOf(SObjectType objectType) {
             return this.getOperationResult(OperationType.PUBLISH_DML, objectType);
         }
 
@@ -1457,19 +1457,19 @@ public inherited sharing class DML implements Commitable {
     }
 
     private inherited sharing class InheritedSharing implements DmlSharing {
-        public OperationResult execute(DmlStrategy strategy, List<EnhancedRecord> records) {
+        public virtual OperationResult execute(DmlStrategy strategy, List<EnhancedRecord> records) {
             return strategy.execute(records);
         }
     }
 
     private without sharing class WithoutSharing implements DmlSharing {
-        public OperationResult execute(DmlStrategy strategy, List<EnhancedRecord> records) {
+        public virtual OperationResult execute(DmlStrategy strategy, List<EnhancedRecord> records) {
             return strategy.execute(records);
         }
     }
 
     private with sharing class WithSharing implements DmlSharing {
-        public OperationResult execute(DmlStrategy strategy, List<EnhancedRecord> records) {
+        public virtual OperationResult execute(DmlStrategy strategy, List<EnhancedRecord> records) {
             return strategy.execute(records);
         }
     }
